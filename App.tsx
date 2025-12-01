@@ -782,7 +782,7 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
                       <p className="text-xs text-slate-500 uppercase">Local Secondary Market</p>
                    </div>
                    <div className="border-l-4 border-slate-600 pl-4">
-                      <p className="text-xl font-bold text-white">Demand > Supply</p>
+              <p className="text-xl font-bold text-white">Demand &gt; Supply</p>
                       <p className="text-xs text-slate-500 uppercase">Import Constraints</p>
                    </div>
                 </div>
