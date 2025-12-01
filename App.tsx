@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, X, TrendingUp, Shield, Truck, Phone, 
-  BarChart3, BookOpen, ArrowRight, CheckCircle, 
-  PlayCircle, FileText, Anchor, ChevronDown, Send, User, Bot,
-  Quote, Target, Lock, Globe, Award, Users, ChevronLeft, Info,
+  BarChart3, ArrowRight, CheckCircle, 
+  PlayCircle, FileText, Anchor, ChevronDown, Send, Bot,
+  Quote, Lock, Globe, Award, Info,
   Scale, Zap, History, AlertTriangle, Coins, Building, Eye,
-  PieChart as LucidePieChart, Filter, SlidersHorizontal, ArrowLeft, Check, Search,
-  ArrowUpRight, Calendar, Video, Briefcase, Mail, Newspaper, Bookmark, GraduationCap
+  PieChart as LucidePieChart, Filter, Check, Search,
+  ArrowUpRight, Calendar, Briefcase, Mail, Newspaper, GraduationCap, ArrowLeft
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 
 // --- Types ---
 
@@ -420,21 +420,45 @@ const SectionHeading = ({ title, subtitle, light = false }: { title: string, sub
   </div>
 );
 
-const Logo = () => (
-  <div className="flex items-center gap-3 select-none">
-    <div className="relative h-10">
-       <img 
-        src="https://via.placeholder.com/150x150/0B1120/E2E8F0?text=LAVI+LOGO" 
-        alt="Lavi Silver Group" 
-        className="h-full w-auto object-contain"
-       />
+const Logo = () => {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="flex items-center gap-3 select-none">
+      <div className="relative h-10 w-10 flex items-center justify-center">
+         {!imageError ? (
+           <img 
+            src="./logo.png" 
+            alt="Lavi Silver Group" 
+            className="h-full w-auto object-contain"
+            onError={() => setImageError(true)}
+           />
+         ) : (
+           <svg viewBox="0 0 100 100" className="h-full w-full">
+              {/* Fallback SVG: Lion & Ingots representation */}
+              <defs>
+                <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#E2E8F0" />
+                  <stop offset="50%" stopColor="#94A3B8" />
+                  <stop offset="100%" stopColor="#E2E8F0" />
+                </linearGradient>
+              </defs>
+              {/* Stacked Ingots */}
+              <path d="M10 70 L30 70 L35 60 L15 60 Z" fill="url(#silverGrad)" />
+              <path d="M40 70 L60 70 L65 60 L45 60 Z" fill="url(#silverGrad)" opacity="0.8" />
+              <path d="M25 55 L45 55 L50 45 L30 45 Z" fill="url(#silverGrad)" opacity="0.9" />
+              {/* Stylized Lion Head Profile */}
+              <path d="M60 20 C 75 20, 90 30, 90 50 C 90 65, 80 70, 70 70 L 70 50 C 75 50, 80 45, 80 35 C 80 25, 70 25, 65 30 L 60 20 Z" fill="url(#silverGrad)" />
+           </svg>
+         )}
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="text-2xl font-serif font-bold tracking-wide text-white leading-none">Lavi</span>
+        <span className="text-[0.6rem] tracking-[0.25em] text-lavi-silverDark font-medium uppercase mt-1">Silver Group</span>
+      </div>
     </div>
-    <div className="flex flex-col justify-center">
-      <span className="text-2xl font-serif font-bold tracking-wide text-white leading-none">Lavi</span>
-      <span className="text-[0.6rem] tracking-[0.25em] text-lavi-silverDark font-medium uppercase mt-1">Silver Group</span>
-    </div>
-  </div>
-);
+  );
+};
 
 const Ticker = () => {
   const [silverPrice, setSilverPrice] = useState(31.42);
@@ -592,7 +616,7 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
         </div>
       </section>
 
-      {/* Real Assets for Uncertain Times (Replacing Value Props) */}
+      {/* Real Assets for Uncertain Times */}
       <section className="container mx-auto px-6">
         <SectionHeading 
           title="Real Assets for Uncertain Times" 
@@ -632,7 +656,7 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
         </div>
       </section>
 
-      {/* Making Aliyah Feature Section - New Content */}
+      {/* Making Aliyah Feature Section */}
       <section className="bg-lavi-primary/30 py-24 border-y border-white/5 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-lavi-silver/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
           
@@ -713,7 +737,7 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
 
                <div>
                   <div className="flex items-center gap-2 mb-4">
-                     <PieChart as={LucidePieChart} className="w-5 h-5 text-lavi-silver" />
+                     <LucidePieChart className="w-5 h-5 text-lavi-silver" />
                      <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">Strategic Allocation</span>
                   </div>
                   <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">Diversify Your Success</h2>
@@ -825,7 +849,7 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
         </div>
       </section>
 
-      {/* Featured Products Preview (Moved below Analysis) */}
+      {/* Featured Products Preview */}
       <section className="container mx-auto px-6">
         <div className="flex justify-between items-end mb-12">
             <div className="max-w-2xl">
@@ -940,7 +964,7 @@ const About = ({ navigate }: { navigate: (page: Page) => void }) => {
   return (
     <div className="pt-0 bg-slate-50">
       
-      {/* 1. Benefits for Investors (Now Top, Dark Theme) */}
+      {/* 1. Benefits for Investors (Top, Dark Theme) */}
       <section className="bg-lavi-dark py-24 relative overflow-hidden">
          {/* Decorative elements */}
          <div className="absolute top-0 right-0 w-96 h-96 bg-lavi-silver/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -1000,7 +1024,7 @@ const About = ({ navigate }: { navigate: (page: Page) => void }) => {
          </div>
       </section>
 
-      {/* 2. About Lavi (Now Bottom, Split Design, Silver BG) */}
+      {/* 2. About Lavi (Bottom, Split Design, Silver BG) */}
       <section className="">
         <div className="grid md:grid-cols-2 min-h-[600px]">
           {/* Text Side - Silver BG */}
@@ -1449,7 +1473,7 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
              ))}
          </div>
 
-         {/* Featured Content: Next Webinar (Always Visible unless filtering specifically for others) */}
+         {/* Featured Content: Next Webinar */}
          {(activeCategory === 'All' || activeCategory === 'Market Briefing') && (
             <div className="mb-20 animate-fade-in">
                 <div className="max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl p-8 relative overflow-hidden shadow-xl">
@@ -1525,7 +1549,7 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
             ))}
          </div>
 
-         {/* E-Books Section (Visible on 'All' or 'Silver 101') */}
+         {/* E-Books Section */}
          {(activeCategory === 'All' || activeCategory === 'Silver 101') && (
             <div className="mt-24 bg-lavi-dark border border-white/5 rounded-2xl p-10 md:p-16 text-center relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-lavi-silver/50 to-transparent"></div>
@@ -1535,7 +1559,9 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
                     <p className="text-slate-300 mb-8 leading-relaxed">
                         Download our comprehensive guide to physical allocation, storage, and taxation in Israel.
                     </p>
-                    <Button variant="primary" className="mx-auto">Download Free E-Book</Button>
+                    <div className="flex justify-center">
+                        <Button variant="primary" className="mx-auto">Download Free E-Book</Button>
+                    </div>
                 </div>
             </div>
          )}
@@ -1557,7 +1583,7 @@ const Contact = () => {
                         <span>+972 (0) 3-555-0123</span>
                      </div>
                      <div className="flex items-center gap-4 text-slate-600">
-                        <User className="w-6 h-6 text-lavi-dark" />
+                        <Mail className="w-6 h-6 text-lavi-dark" />
                         <span>info@lavisilver.com</span>
                      </div>
                      <div className="flex items-center gap-4 text-slate-600">
