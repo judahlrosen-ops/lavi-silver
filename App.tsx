@@ -1,23 +1,27 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, X, TrendingUp, Shield, Truck, Phone, 
-  BarChart3, ArrowRight, CheckCircle, 
-  PlayCircle, FileText, Anchor, ChevronDown, Send, Bot,
-  Quote, Lock, Globe, Award, Info,
+  BarChart3, BookOpen, ArrowRight, CheckCircle, 
+  PlayCircle, FileText, Anchor, ChevronDown, Send, User, Bot,
+  Quote, Target, Lock, Globe, Award, Users, ChevronLeft, Info,
   Scale, Zap, History, AlertTriangle, Coins, Building, Eye,
-  PieChart as LucidePieChart, Filter, Check, Search,
-  ArrowUpRight, Calendar, Briefcase, Mail, Newspaper, GraduationCap, ArrowLeft
+  PieChart as LucidePieChart, Filter, SlidersHorizontal, ArrowLeft, Check, Search,
+  ArrowUpRight, Calendar, Video, Briefcase, Mail, Newspaper, Bookmark, GraduationCap, Package, Languages,
+  Home as HomeIcon, Clock, DollarSign, Key
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
-import { GoogleGenAI, Chat } from "@google/genai";
 
-// --- Types ---
+// --- Types & Constants ---
+
+type Lang = 'en' | 'he';
 
 enum Page {
   HOME = 'home',
+  WHO_WE_SERVE = 'who_we_serve',
   ABOUT = 'about',
   PRODUCTS = 'products',
   LEARN = 'learn',
@@ -40,7 +44,7 @@ interface Product {
   name: string;
   subtitle: string;
   priceIndication: string;
-  priceOffset: number; // For sorting
+  priceOffset: number;
   weight: string;
   purity: string;
   mint: string;
@@ -52,29 +56,649 @@ interface Product {
   specs: ProductSpecs;
 }
 
-type ArticleCategory = 'All' | 'Market Briefing' | 'Expert Insights' | 'Lavi Analysis' | 'Silver 101';
-
 interface Article {
   id: number;
   title: string;
   excerpt: string;
   type: 'Video' | 'White Paper' | 'Article' | 'External';
-  category: ArticleCategory;
+  category: string;
   readTime: string;
-  source?: string; // For 3rd party
+  source?: string;
   date: string;
 }
 
-interface Webinar {
-  id: number;
-  title: string;
-  date: string;
-  speaker: string;
-  description: string;
-  upcoming: boolean;
-}
+// --- Content Dictionary ---
 
-// --- Mock Data ---
+const CONTENT = {
+  en: {
+    nav: {
+      home: 'Home',
+      whoWeServe: 'Who We Serve',
+      products: 'Catalog',
+      about: 'About',
+      learn: 'Learn',
+      contact: 'Contact Us',
+      desk: 'Investor Desk'
+    },
+    footer: {
+      desc: 'Premium silver brokerage for the modern investor. Secure, liquid, and compliant wealth preservation solutions for Olim and Israeli residents.',
+      quickLinks: 'Quick Links',
+      legal: 'Legal',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Service',
+      aml: 'AML Compliance',
+      shipping: 'Shipping & Delivery',
+      contact: 'Contact',
+      rights: '© 2024 Lavi Silver Group. All rights reserved.',
+      secure: 'Secure SSL Encryption'
+    },
+    address: 'Beit Lechem Road, Jerusalem',
+    ticker: {
+      live: 'Live Markets',
+      delayed: 'Prices delayed 15m'
+    },
+    hero: {
+      h1: 'Safeguard Your Wealth.',
+      h1_gradient: 'Diversify with Confidence.',
+      sub: 'Investors have trusted silver for generations to grow and diversify their wealth.',
+      cta1: 'Silver Catalog',
+      cta2: 'Who We Serve'
+    },
+    ytd: {
+      badge: 'YTD Analysis',
+      title: 'Investing is About Time',
+      desc: 'With exceptional returns this year, silver has explosive growth potential as it\'s both a monetary metal, and the backbone of the world’s industrial sector - powering solar energy systems, electric vehicles, and medical equipment.',
+      silverYtd: 'Silver YTD',
+      sp500Ytd: 'S&P 500 YTD',
+      readReport: 'Read Full Report'
+    },
+    allocation: {
+      badge: 'Strategic Allocation',
+      title: 'Diversify Your Success',
+      desc: 'Israeli high-tech portfolios are often heavily weighted in equities and options. Financial experts recommend allocating 5-15% of your net worth to commodities to hedge against market corrections and currency devaluation.',
+      label1: 'Precious Metals: Stability & Insurance',
+      label2: 'Equities: Growth & Risk',
+      cta: 'Discuss Allocation Strategy',
+      chartLabel: 'Recommended Allocation'
+    },
+    catalog: {
+      badge: 'Our Catalog',
+      title: 'Sovereign Mint Bullion',
+      desc: 'We exclusively stock recognized sovereign coins and LBMA-approved bars to ensure maximum liquidity and security.',
+      cta: 'View Full Catalog'
+    },
+    insights: {
+      title: 'Investment Insights',
+      desc: 'Navigate the complexities of the Israeli financial system and global precious metals markets.',
+      cta: 'Read All Articles'
+    },
+    ctaSection: {
+      title: 'Take Command of Your Financial Future',
+      desc: 'Don\'t wait for the next banking disaster or currency fall, arrange a private meeting with us to discuss the allocation of a part of your portfolio into physical silver.',
+      btn1: 'Silver Catalog',
+      btn2: 'Book Consultation'
+    },
+    whoWeServe: {
+      title: 'Who We Serve',
+      sub: 'Tailored strategies for Olim, High-Tech Professionals, and Long-Term Investors.',
+      aliyahTitle: 'Making Aliyah?',
+      aliyahGradient: 'Bring Real Assets With You.',
+      aliyahIntro: [
+        "Assessing a move to Israel, building a financial foundation is key to a successful life, and physical silver offers a unique opportunity to secure that base and separate it from the traditional banking system. Coming from the often-recommended advice to invest in real estate, physical silver is a breath of fresh air and a smart alternative. Decades of experience show that traditional property investment is high-risk for default.",
+        "When buying a property in Israel, real estate investment in Israel exposes new immigrants like never before. It doesn't matter what kind of properties they choose, labyrinthine fees pile up and comprise Purchase Tax (Mas Rechisha), Legal Fees, Agent Commissions, Ongoing Property Tax (Arnona), Building Committee Fees (Va’ad Bayit) and unforeseen maintenance and repairs. Rental management has the additional complications of disputes with tenants, empty periods, and contract renewals and comes with Capital Gains Tax of up to twenty-five percent when the property is sold and, let’s not forget the time you spend on viewings, negotiations, and fix-ups.",
+        "On the other hand, physical silver gives you the chance to really enjoy passive ownership, requiring virtually no ongoing expenses, financial, time or stress.",
+        "Built especially for Olim, our service is given in English, taking away the need to Google Translate, and in the high Israeli market, physical silver won't sit idle for months, it's bought and sold, sent to your door and fully insured and secure. Expert money management is also something we do, moving money and changing your savings into real assets with total confidence and precision.",
+        "When pitted against the problems of real estate investment in Israel, physical silver starts to sound like a very attractive option."
+      ],
+      aliyahCta: 'Start Your Consultation',
+      benefitsTitle: 'Benefits for Investors',
+      benefitsSub: 'Tailored strategies for your financial background.',
+      olimTitle: 'For Olim',
+      olimContent: [
+        "Coming from the States, the financial obstacles that come with making aliyah often cause olim to default to the stability of US equities or plunge into illiquid Israeli real estate, but tangible physical silver provides an easier and truly passive way to diversify and grow your wealth.",
+        "Physical assets don't take much to manage, and since it is independent of any bank, you can see what you have in your hand. It also represents your ticket to instant liquidity out of the banking system, we'll buy it back from you at a competitive market rate and advise on secondary market options as well.",
+        "VAT in Israel, is a heavy burden on companies, 18% for silver, but businesses may be able to reclaim this, giving them back a substantial sum."
+      ],
+      techTitle: 'For Startup Nation Investors',
+      techContent: [
+        "When it comes to startup investing, concentration is usually difficult to navigate, especially when the market after an exit can be rough and unpredictable and you need to spread out your bets. Physical silver has stable long-term growth, and backs real economic activities such as electronics, solar panels and batteries.",
+        "One way to be certain you're getting a profit with silver, is watching the reversion of the gold to silver ratio, huge price rises are predicted in this situation, even before the absolute price of gold goes up and you see the real profit.",
+        "Another benefit of silver physical investments is the guaranteed privacy and discretion it gives. Your holdings won’t show up on your statement, we will keep your data 100% confidential."
+      ],
+      comparisonTable: {
+        headers: ['Real Estate', 'Physical Silver'],
+        rows: [
+          { label: 'Entry Cost', re: '₪3M - ₪5M', ag: 'Start with ₪5,000' },
+          { label: 'Ongoing Fees', re: 'Taxes, maintenance, management', ag: 'None' },
+          { label: 'Liquidity', re: 'Months to sell', ag: 'Same-day sale' },
+          { label: 'Time Investment', re: 'Significant', ag: 'Zero' },
+          { label: 'Storage', re: 'Fixed location', ag: 'Portable, private' },
+          { label: 'Tenant Headaches', re: 'Guaranteed', ag: 'None' }
+        ]
+      }
+    },
+    about: {
+      badge: 'Who We Are',
+      title: 'Lavi Silver Group',
+      sub: 'Israel\'s premier silver brokerage specializing in liquidity, security, and white-glove advisory for investors.',
+      desc: 'Founded by Olim for Olim and High-Tech professionals, we act as your personal gateway to the physical precious metals market.',
+      points: ['Licensed Brokerage', 'Personal Advisory', 'Secure Transactions', 'Global Sourcing'],
+      whyTitle: 'Why Choose Lavi Silver Group',
+      whySub: 'We offer more than just a transaction.',
+      features: [
+        { title: 'Personal Consultation', desc: 'Every client starts with a conversation. We assess your portfolio and liquidity needs to recommend the right mix.' },
+        { title: 'Navigate the Market', desc: 'Expert advisory for navigating the unique aspects of the Israeli silver market, including VAT and import logistics.' },
+        { title: 'White-Glove Service', desc: 'From inquiry to delivery, we manage every step. Shipped directly to your door with insured secure delivery.' }
+      ],
+      ctaTitle: 'Ready to secure your future?',
+      ctaDesc: 'Speak with an advisor today and discover how simple it is to add physical silver to your investment strategy.',
+      ctaBtn: 'Schedule Advisory Call'
+    },
+    products: {
+      badge: 'Our Catalog',
+      desc: 'We exclusively stock recognized sovereign coins and LBMA-approved bars to ensure maximum liquidity and security.',
+      filters: 'Filters',
+      collection: 'Collection',
+      mint: 'Mint',
+      clear: 'Clear Filters',
+      bannerTitle: 'New to Silver?',
+      bannerDesc: 'Download our free investor guide.',
+      bannerLink: 'Learn More',
+      showing: 'Showing',
+      results: 'results',
+      sortBy: 'Sort by:',
+      sortOptions: { featured: 'Featured', low: 'Price: Low to High', high: 'Price: High to Low' },
+      indicative: 'Indicative',
+      viewDetails: 'View Details',
+      back: 'Back to Catalog',
+      specs: 'Specifications',
+      highlights: 'Product Highlights',
+      enquire: 'Enquire Now',
+      youMightLike: 'You Might Also Like',
+      buyBackTitle: 'Sell Your Silver to Lavi',
+      buyBackDesc: 'We offer a consistent market for your metals. Enjoy transparent, competitive buy-back rates for all sovereign bullion and LBMA-approved bars.',
+      buyBackPoints: [
+        'Liquidity for Lavi clients',
+        'Immediate payment via bank transfer (NIS/USD)',
+        'Free pickup and transfer in Jerusalem'
+      ],
+      buyBackBtn: 'Request Buy-Back Offer'
+    },
+    learn: {
+      title: 'Knowledge Hub',
+      sub: 'Navigate the complexities of the Israeli financial system and global precious metals markets.',
+      categories: ['All', 'Market Briefing', 'Expert Insights', 'Lavi Analysis', 'Silver 101'],
+      nextSession: 'Next Session',
+      monthlyBriefing: 'Monthly Market Briefing',
+      webinarTitle: 'Silver\'s Next Move: Monthly Outlook',
+      webinarDesc: 'Join Jonathan Lavi for a live analysis of Fed interest rate implications, the Gold-to-Silver ratio, and specific opportunities in the Israeli local market.',
+      register: 'Register for Webinar',
+      watch: 'Watch Now',
+      read: 'Read Article',
+      ebookTitle: 'The Silver Investor\'s Handbook',
+      ebookDesc: 'Download our comprehensive guide to physical allocation, storage, and taxation in Israel.',
+      download: 'Download Free E-Book'
+    },
+    contact: {
+      title: 'Start Your Journey',
+      sub: 'Schedule a consultation with our wealth preservation experts.',
+      infoTitle: 'Contact Information',
+      officeHours: 'Office Hours',
+      form: {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        email: 'Email Address',
+        message: 'Message',
+        send: 'Send Message'
+      }
+    }
+  },
+  he: {
+    nav: {
+      home: 'בית',
+      whoWeServe: 'את מי אנו משרתים',
+      products: 'קטלוג',
+      about: 'אודות',
+      learn: 'למד',
+      contact: 'צור קשר',
+      desk: 'דסק משקיעים'
+    },
+    footer: {
+      desc: 'ברוקראז\' כסף מוביל למשקיע המודרני. פתרונות שימור עושר מאובטחים, נזילים ותואמי רגולציה לעולים ולתושבי ישראל.',
+      quickLinks: 'קישורים מהירים',
+      legal: 'משפטי',
+      privacy: 'מדיניות פרטיות',
+      terms: 'תנאי שימוש',
+      aml: 'ציות AML',
+      shipping: 'משלוח ואספקה',
+      contact: 'צור קשר',
+      rights: '© 2024 קבוצת לביא כסף. כל הזכויות שמורות.',
+      secure: 'הצפנת SSL מאובטחת'
+    },
+    address: 'דרך בית לחם, ירושלים',
+    ticker: {
+      live: 'שווקים בזמן אמת',
+      delayed: 'עיכוב של 15 דקות'
+    },
+    hero: {
+      h1: 'שמור על העושר שלך.',
+      h1_gradient: 'גוון בביטחון.',
+      sub: 'משקיעים סומכים על כסף (Silver) במשך דורות כדי להגדיל ולגוון את הונם.',
+      cta1: 'קטלוג כסף',
+      cta2: 'את מי אנו משרתים'
+    },
+    ytd: {
+      badge: 'ניתוח שנתי',
+      title: 'השקעה היא עניין של זמן',
+      desc: 'עם תשואות יוצאות דופן השנה, לכסף יש פוטנציאל צמיחה אדיר כיוון שהוא גם מתכת מונטרית וגם עמוד השדרה של המגזר התעשייתי העולמי - מניע מערכות אנרגיה סולארית, רכבים חשמליים וציוד רפואי.',
+      silverYtd: 'כסף מתחילת שנה',
+      sp500Ytd: 'S&P 500 מתחילת שנה',
+      readReport: 'קרא דוח מלא'
+    },
+    allocation: {
+      badge: 'הקצאה אסטרטגית',
+      title: 'גוון את ההצלחה שלך',
+      desc: 'תיקי השקעות בהייטק הישראלי מוטים לעתים קרובות בכבדות למניות ואופציות. מומחים פיננסיים ממליצים להקצות 5-15% מהשווי הנקי לסחורות כדי לגדר מפני תיקוני שוק ופיחות מטבע.',
+      label1: 'מתכות יקרות: יציבות וביטוח',
+      label2: 'מניות: צמיחה וסיכון',
+      cta: 'דון באסטרטגיית הקצאה',
+      chartLabel: 'הקצאה מומלצת'
+    },
+    catalog: {
+      badge: 'הקטלוג שלנו',
+      title: 'מטבעות ריבוניים',
+      desc: 'אנו מחזיקים אך ורק מטבעות ריבוניים מוכרים ומטילים המאושרים על ידי LBMA כדי להבטיח נזילות וביטחון מקסימליים.',
+      cta: 'צפה בקטלוג המלא'
+    },
+    insights: {
+      title: 'תובנות השקעה',
+      desc: 'נווט במורכבות המערכת הפיננסית הישראלית ושוקי המתכות היקרות העולמיים.',
+      cta: 'קרא את כל המאמרים'
+    },
+    ctaSection: {
+      title: 'קח פיקוד על העתיד הפיננסי שלך',
+      desc: 'אל תחכה לאסון הבנקאי הבא או לנפילת המטבע, קבע פגישה פרטית איתנו כדי לדון בהקצאת חלק מהתיק שלך לכסף פיזי.',
+      btn1: 'קטלוג כסף',
+      btn2: 'קבע פגישת ייעוץ'
+    },
+    whoWeServe: {
+      title: 'את מי אנו משרתים',
+      sub: 'אסטרטגיות מותאמות לעולים, אנשי הייטק ומשקיעים לטווח ארוך.',
+      aliyahTitle: 'עושים עלייה?',
+      aliyahGradient: 'הביאו נכסים ריאליים איתכם.',
+      aliyahIntro: [
+        "בהערכת מעבר לישראל, בניית יסודות פיננסיים היא המפתח לחיים מוצלחים, וכסף פיזי מציע הזדמנות ייחודית להבטיח את הבסיס הזה ולהפריד אותו מהמערכת הבנקאית המסורתית. בניגוד לעצה הנפוצה להשקיע בנדל\"ן, כסף פיזי הוא משב רוח רענן ואלטרנטיבה חכמה. עשורים של ניסיון מראים שהשקעה מסורתית בנכסים היא בסיכון גבוה לחדלות פירעון.",
+        "בעת רכישת נכס בישראל, השקעה בנדל\"ן חושפת עולים חדשים לסיכונים כמו שלא היו מעולם. לא משנה באילו נכסים הם בוחרים, עמלות מורכבות נערמות וכוללות מס רכישה, שכר טרחת עורך דין, עמלות תיווך, ארנונה, ועד בית ותחזוקה ותיקונים בלתי צפויים. ניהול שכירות מגיע עם סיבוכים נוספים של סכסוכים עם דיירים, תקופות ריקות וחידושי חוזים, ומגיע עם מס שבח של עד עשרים וחמישה אחוזים בעת מכירת הנכס, ושלא נשכח את הזמן שאתה מבלה בצפיות, משא ומתן ותיקונים.",
+        "מצד שני, כסף פיזי נותן לך את ההזדמנות ליהנות באמת מבעלות פסיבית, הדורשת כמעט אפס הוצאות שוטפות, פיננסיות, זמן או לחץ.",
+        "נבנה במיוחד עבור עולים, השירות שלנו ניתן באנגלית, חוסך את הצורך בגוגל טרנסלייט, ובשוק הישראלי הגבוה, כסף פיזי לא יושב בחיבוק ידיים במשך חודשים, הוא נקנה ונמכר, נשלח לדלתך ומבוטח ומאובטח לחלוטין. ניהול כספים מומחה הוא גם משהו שאנחנו עושים, העברת כסף והמרת החסכונות שלך לנכסים ריאליים בביטחון ודיוק מלאים.",
+        "כאשר משווים אותו לבעיות של השקעה בנדל\"ן בישראל, כסף פיזי מתחיל להישמע כאופציה אטרקטיבית מאוד."
+      ],
+      aliyahCta: 'התחל ייעוץ',
+      benefitsTitle: 'יתרונות למשקיעים',
+      benefitsSub: 'אסטרטגיות מותאמות לרקע הפיננסי שלך.',
+      olimTitle: 'לעולים',
+      olimContent: [
+        "בהגיעם מארה\"ב, המכשולים הפיננסיים הכרוכים בעשיית עלייה גורמים לעתים קרובות לעולים ברירת מחדל ליציבות של מניות ארה\"ב או לצלול לנדל\"ן ישראלי לא נזיל, אך כסף פיזי מוחשי מספק דרך קלה יותר ופסיבית באמת לגוון ולהגדיל את העושר שלך.",
+        "נכסים פיזיים לא דורשים הרבה ניהול, ומכיוון שהוא עצמאי מכל בנק, אתה יכול לראות מה יש לך ביד. זה גם מייצג את הכרטיס שלך לנזילות מיידית מחוץ למערכת הבנקאית, אנו נקנה אותו ממך בחזרה במחיר שוק תחרותי ונייעץ גם על אפשרויות שוק משני.",
+        "מע\"מ בישראל הוא נטל כבד על חברות, 18% לכסף, אך עסקים עשויים לקבל החזר על כך, מה שמחזיר להם סכום נכבד."
+      ],
+      techTitle: 'למשקיעי אומת הסטארט-אפ',
+      techContent: [
+        "כשמדובר בהשקעות סטארט-אפ, ריכוזיות היא בדרך כלל קשה לניווט, במיוחד כשהשוק לאחר אקזיט יכול להיות קשה ובלתי צפוי ואתה צריך לפזר את ההימורים שלך. לכסף פיזי יש צמיחה יציבה לטווח ארוך, והוא מגבה פעילויות כלכליות אמיתיות כמו אלקטרוניקה, פאנלים סולאריים וסוללות.",
+        "דרך אחת להיות בטוחים שאתם מקבלים רווח עם כסף, היא לצפות בחזרה לממוצע של יחס הזהב לכסף, עליות מחירים ענקיות צפויות במצב זה, עוד לפני שמחיר הזהב המוחלט עולה ואתם רואים את הרווח האמיתי.",
+        "יתרון נוסף של השקעות פיזיות בכסף הוא הפרטיות והדיסקרטיות המובטחת שהוא נותן. האחזקות שלך לא יופיעו בהצהרה שלך, אנו נשמור על הנתונים שלך ב-100% סודיות."
+      ],
+      comparisonTable: {
+        headers: ['נדל"ן', 'כסף פיזי'],
+        rows: [
+          { label: 'עלות כניסה', re: '₪3M - ₪5M', ag: 'התחל ב-₪5,000' },
+          { label: 'עמלות שוטפות', re: 'מסים, תחזוקה, ניהול', ag: 'ללא' },
+          { label: 'נזילות', re: 'חודשים למכירה', ag: 'מכירה באותו יום' },
+          { label: 'השקעת זמן', re: 'משמעותית', ag: 'אפס' },
+          { label: 'אחסון', re: 'מיקום קבוע', ag: 'נייד, פרטי' },
+          { label: 'כאבי ראש מדיירים', re: 'מובטח', ag: 'ללא' }
+        ]
+      }
+    },
+    about: {
+      badge: 'מי אנחנו',
+      title: 'קבוצת לביא כסף',
+      sub: 'ברוקראז\' הכסף המוביל בישראל המתמחה בנזילות, ביטחון וייעוץ אישי למשקיעים.',
+      desc: 'נוסד על ידי עולים למען עולים ואנשי הייטק, אנו משמשים כשער האישי שלך לשוק המתכות היקרות הפיזיות.',
+      points: ['ברוקראז\' מורשה', 'ייעוץ אישי', 'עסקאות מאובטחות', 'רכש גלובלי'],
+      whyTitle: 'למה לבחור בקבוצת לביא',
+      whySub: 'אנו מציעים יותר מסתם עסקה.',
+      features: [
+        { title: 'ייעוץ אישי', desc: 'כל לקוח מתחיל בשיחה. אנו מעריכים את התיק וצרכי הנזילות שלך כדי להמליץ על התמהיל הנכון.' },
+        { title: 'נווט בשוק', desc: 'ייעוץ מומחה לניווט בהיבטים הייחודיים של שוק הכסף הישראלי, כולל מע"מ ולוגיסטיקת יבוא.' },
+        { title: 'שירות כפפות לבנות', desc: 'מהפנייה ועד המסירה, אנו מנהלים כל שלב. נשלח ישירות לדלתך עם משלוח מאובטח ומבוטח.' }
+      ],
+      ctaTitle: 'מוכן להבטיח את עתידך?',
+      ctaDesc: 'דבר עם יועץ היום וגלה כמה פשוט להוסיף כסף פיזי לאסטרטגיית ההשקעה שלך.',
+      ctaBtn: 'קבע שיחת ייעוץ'
+    },
+    products: {
+      badge: 'הקטלוג שלנו',
+      desc: 'אנו מחזיקים אך ורק מטבעות ריבוניים מוכרים ומטילים המאושרים על ידי LBMA כדי להבטיח נזילות וביטחון מקסימליים.',
+      filters: 'סינון',
+      collection: 'קולקציה',
+      mint: 'מטבעה',
+      clear: 'נקה סינון',
+      bannerTitle: 'חדש בתחום?',
+      bannerDesc: 'הורד את המדריך למשקיע.',
+      bannerLink: 'למד עוד',
+      showing: 'מציג',
+      results: 'תוצאות',
+      sortBy: 'מיין לפי:',
+      sortOptions: { featured: 'מומלץ', low: 'מחיר: מהנמוך לגבוה', high: 'מחיר: מהגבוה לנמוך' },
+      indicative: 'אינדיקטיבי',
+      viewDetails: 'צפה בפרטים',
+      back: 'חזרה לקטלוג',
+      specs: 'מפרט טכני',
+      highlights: 'דגשים למוצר',
+      enquire: 'שאל עכשיו',
+      youMightLike: 'אולי תאהב גם',
+      buyBackTitle: 'מכור את הכסף שלך ללביא',
+      buyBackDesc: 'אנו מציעים שוק עקבי למתכות שלך. תיהנה ממחירי רכישה חוזרת שקופים ותחרותיים לכל המטבעות הריבוניים והמטילים המאושרים.',
+      buyBackPoints: [
+        'נזילות ללקוחות לביא',
+        'תשלום מיידי בהעברה בנקאית (ש"ח/דולר)',
+        'איסוף והעברה חינם בירושלים'
+      ],
+      buyBackBtn: 'בקש הצעת רכש'
+    },
+    learn: {
+      title: 'מרכז ידע',
+      sub: 'נווט במורכבות המערכת הפיננסית הישראלית ושוקי המתכות היקרות העולמיים.',
+      categories: ['הכל', 'סקירת שוק', 'תובנות מומחים', 'ניתוח לביא', 'כסף 101'],
+      nextSession: 'מפגש הבא',
+      monthlyBriefing: 'סקירת שוק חודשית',
+      webinarTitle: 'המהלך הבא של הכסף: תחזית חודשית',
+      webinarDesc: 'הצטרף ליונתן לביא לניתוח חי של השלכות ריבית הפד, יחס הזהב-כסף והזדמנויות ספציפיות בשוק המקומי.',
+      register: 'הירשם לוובינר',
+      watch: 'צפה עכשיו',
+      read: 'קרא מאמר',
+      ebookTitle: 'המדריך למשקיע בכסף',
+      ebookDesc: 'הורד את המדריך המקיף שלנו להקצאה פיזית, אחסון ומיסוי בישראל.',
+      download: 'הורד ספר אלקטרוני חינם'
+    },
+    contact: {
+      title: 'התחל את המסע שלך',
+      sub: 'קבע פגישת ייעוץ עם מומחי שימור העושר שלנו.',
+      infoTitle: 'פרטי קשר',
+      officeHours: 'שעות פעילות',
+      form: {
+        firstName: 'שם פרטי',
+        lastName: 'שם משפחה',
+        email: 'כתובת אימייל',
+        message: 'הודעה',
+        send: 'שלח הודעה'
+      }
+    }
+  }
+};
+
+// --- Mock Data Functions (To support localization) ---
+
+const getProducts = (lang: Lang): Product[] => {
+  const isEn = lang === 'en';
+  return [
+    {
+      id: 1,
+      name: isEn ? "Canadian Silver Maple Leaf" : "מטבע מייפל ליף קנדי",
+      subtitle: isEn ? "The World's Security Standard" : "סטנדרט הביטחון העולמי",
+      priceIndication: isEn ? "Spot + $4.50 / oz" : "ספוט + $4.50 / אונקיה",
+      priceOffset: 4.50,
+      weight: isEn ? "1 oz" : "1 אונקיה",
+      purity: ".9999",
+      mint: isEn ? "Royal Canadian Mint" : "המטבעה המלכותית הקנדית",
+      category: "coin",
+      tier: "Standard Bullion",
+      description: isEn ? 
+        "The Royal Canadian Mint’s Silver Maple Leaf is one of the world’s most recognized coins. It features advanced security measures, including radial lines and a micro-engraved maple leaf with the year of issue." :
+        "מטבע המייפל ליף של המטבעה המלכותית הקנדית הוא אחד המטבעות המוכרים בעולם. הוא כולל אמצעי אבטחה מתקדמים, כולל קווים רדיאליים ועלה מייפל בחריטה מיקרוסקופית.",
+      image: "https://images.unsplash.com/photo-1624623348275-52646241b17d?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "Contains 1 oz of .9999 fine Silver.",
+        "Features RCM's MintShield™ technology.",
+        "Sovereign coin backed by Canadian government."
+      ] : [
+        "מכיל 1 אונקיה של כסף טהור .9999.",
+        "כולל טכנולוגיית MintShield™ למניעת כתמים.",
+        "מטבע ריבוני בגיבוי ממשלת קנדה."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.99%",
+        weight: isEn ? "31.10 grams" : "31.10 גרם",
+        diameter: "38 mm",
+        manufacturer: isEn ? "Royal Canadian Mint" : "Royal Canadian Mint"
+      }
+    },
+    {
+      id: 2,
+      name: isEn ? "American Silver Eagle" : "אמריקן סילבר איגל",
+      subtitle: isEn ? "America's Official Bullion" : "מטבע הבוליון הרשמי של אמריקה",
+      priceIndication: isEn ? "Spot + $6.00 / oz" : "ספוט + $6.00 / אונקיה",
+      priceOffset: 6.00,
+      weight: isEn ? "1 oz" : "1 אונקיה",
+      purity: ".999",
+      mint: isEn ? "United States Mint" : "המטבעה האמריקאית",
+      category: "coin",
+      tier: "Standard Bullion",
+      description: isEn ? 
+        "The American Silver Eagle is the official silver bullion coin of the United States. It is struck only in the one-troy ounce size and is guaranteed to contain one troy ounce of 99.9% pure silver." :
+        "האמריקן סילבר איגל הוא מטבע הכסף הרשמי של ארצות הברית. הוא מוטבע רק בגודל אונקיה אחת ומובטח להכיל אונקיה אחת של כסף טהור 99.9%.",
+      image: "https://images.unsplash.com/photo-1574607383077-47ddc2dc4324?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "The single most popular silver bullion coin.",
+        "Guaranteed by the U.S. Government.",
+        "Eligible for Precious Metals IRAs."
+      ] : [
+        "מטבע הכסף הפופולרי ביותר בעולם.",
+        "מובטח על ידי ממשלת ארה\"ב.",
+        "מוכר לצרכי IRA (בארה\"ב)."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.9%",
+        weight: isEn ? "31.10 grams" : "31.10 גרם",
+        diameter: "40.6 mm",
+        manufacturer: isEn ? "United States Mint" : "United States Mint"
+      }
+    },
+    {
+      id: 3,
+      name: isEn ? "Britannia Silver Coin" : "מטבע בריטניה",
+      subtitle: isEn ? "A Symbol of Strength" : "סמל של עוצמה",
+      priceIndication: isEn ? "Spot + $4.00 / oz" : "ספוט + $4.00 / אונקיה",
+      priceOffset: 4.00,
+      weight: isEn ? "1 oz" : "1 אונקיה",
+      purity: ".999",
+      mint: isEn ? "The Royal Mint" : "המטבעה המלכותית",
+      category: "coin",
+      tier: "Standard Bullion",
+      description: isEn ? 
+        "Britannia has been the changing face of Britain for centuries. This coin features four advanced security features, including a latent image that changes from a padlock to a trident." :
+        "בריטניה היא הפנים המשתנות של בריטניה מזה מאות שנים. המטבע כולל ארבעה מאפייני אבטחה מתקדמים, כולל תמונה סמויה המשתנה ממנעול לקלשון.",
+      image: "https://images.unsplash.com/photo-1610375461246-83648bfb1e25?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "Contains 1 oz of .999 fine Silver.",
+        "Four advanced security features.",
+        "Capital Gains Tax exempt in the UK."
+      ] : [
+        "מכיל 1 אונקיה של כסף טהור .999.",
+        "ארבעה מאפייני אבטחה מתקדמים.",
+        "פטור ממס רווחי הון בבריטניה."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.9%",
+        weight: isEn ? "31.10 grams" : "31.10 גרם",
+        diameter: "38.61 mm",
+        manufacturer: isEn ? "The Royal Mint" : "The Royal Mint"
+      }
+    },
+    {
+      id: 5,
+      name: isEn ? "PAMP Suisse Cast Bar" : "מטיל יצוק PAMP Suisse",
+      subtitle: isEn ? "Swiss Engineering Excellence" : "מצוינות הנדסית שוויצרית",
+      priceIndication: isEn ? "Spot + $2.50 / oz" : "ספוט + $2.50 / אונקיה",
+      priceOffset: 2.50,
+      weight: isEn ? "1 kg" : "1 ק\"ג",
+      purity: ".999",
+      mint: "PAMP Suisse",
+      category: "bar",
+      tier: "Premium Collection",
+      description: isEn ? 
+        "For the serious investor, the 1 kilogram PAMP Suisse cast bar offers lower premiums and high efficiency. These bars are cast, not struck, giving them a unique, rugged appearance." :
+        "למשקיע הרציני, מטיל 1 ק\"ג PAMP Suisse מציע פרמיות נמוכות ויעילות גבוהה. מטילים אלו יצוקים, לא מוטבעים, מה שמעניק להם מראה ייחודי ומחוספס.",
+      image: "https://images.unsplash.com/photo-1521575256220-6385d8525e98?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "Contains 1 kilo (32.15 oz) of .999 fine Silver.",
+        "Cast bar style with a rustic finish.",
+        "Produced by PAMP Suisse."
+      ] : [
+        "מכיל 1 ק\"ג (32.15 אונקיות) כסף טהור .999.",
+        "סגנון יצוק עם גימור כפרי.",
+        "מיוצר על ידי PAMP Suisse."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.9%",
+        weight: "1000 g",
+        diameter: "N/A",
+        manufacturer: "PAMP Suisse"
+      }
+    },
+    {
+      id: 6,
+      name: isEn ? "Lavi Signature 100oz Bar" : "מטיל 100 אונקיות",
+      subtitle: isEn ? "Ultimate Wealth Preservation" : "שימור עושר אולטימטיבי",
+      priceIndication: isEn ? "Spot + $1.90 / oz" : "ספוט + $1.90 / אונקיה",
+      priceOffset: 1.90,
+      weight: isEn ? "100 oz" : "100 אונקיות",
+      purity: ".999",
+      mint: "Asahi / RCM",
+      category: "bar",
+      tier: "Basic Rounds & Bars",
+      description: isEn ? 
+        "The 100 oz silver bar is the industrial standard for wealth preservation. It offers the lowest premium over spot price, making it the most efficient vehicle for large positions." :
+        "מטיל הכסף של 100 אונקיות הוא הסטנדרט התעשייתי לשימור עושר. הוא מציע את הפרמיה הנמוכה ביותר מעל מחיר הספוט, מה שהופך אותו לכלי היעיל ביותר לפוזיציות גדולות.",
+      image: "https://images.unsplash.com/photo-1605792657660-596af9009e82?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "Contains 100 oz of .999 fine Silver.",
+        "Lowest premium option for bulk investment.",
+        "Recognized globally for liquidity."
+      ] : [
+        "מכיל 100 אונקיות כסף טהור .999.",
+        "האופציה בעלת הפרמיה הנמוכה ביותר.",
+        "מוכר גלובלית לנזילות."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.9%",
+        weight: "3.11 kg",
+        diameter: "N/A",
+        manufacturer: "Various"
+      }
+    },
+     {
+      id: 7,
+      name: isEn ? "10 oz Silver Bar (Generic)" : "מטיל כסף 10 אונקיות",
+      subtitle: isEn ? "Stackable & Liquid" : "נזיל ונוח לאחסון",
+      priceIndication: isEn ? "Spot + $2.10 / oz" : "ספוט + $2.10 / אונקיה",
+      priceOffset: 2.10,
+      weight: isEn ? "10 oz" : "10 אונקיות",
+      purity: ".999",
+      mint: "Various",
+      category: "bar",
+      tier: "Basic Rounds & Bars",
+      description: isEn ? 
+        "The 10 oz silver bar is a favorite among stackers for its balance of lower premiums and convenient handling size. Sourced from various reputable mints." :
+        "מטיל ה-10 אונקיות הוא מועדף בקרב אספנים בזכות האיזון בין פרמיות נמוכות לגודל נוח. מקורו במטבעות נחשבות שונות.",
+      image: "https://images.unsplash.com/photo-1620325867502-221cfb5faa5f?q=80&w=1000&auto=format&fit=crop",
+      highlights: isEn ? [
+        "Contains 10 oz of .999 fine Silver.",
+        "Lower premium than sovereign coins.",
+        "Easily stackable rectangular shape."
+      ] : [
+        "מכיל 10 אונקיות כסף טהור .999.",
+        "פרמיה נמוכה יותר ממטבעות ריבוניים.",
+        "צורה מלבנית נוחה לערימה."
+      ],
+      specs: {
+        material: isEn ? "Fine Silver" : "כסף טהור",
+        fineness: "99.9%",
+        weight: "311 g",
+        diameter: "N/A",
+        manufacturer: "Various"
+      }
+    }
+  ];
+};
+
+const getArticles = (lang: Lang): Article[] => {
+  const isEn = lang === 'en';
+  return [
+    {
+      id: 1,
+      title: isEn ? "The Oleh's Guide to Wealth Preservation" : "המדריך לעולה לשימור עושר",
+      excerpt: isEn ? "How to protect your savings from currency volatility during your first years in Israel." : "איך להגן על החסכונות שלך מתנודתיות מטבע בשנים הראשונות בישראל.",
+      type: "Article",
+      category: isEn ? 'Lavi Analysis' : 'ניתוח לביא',
+      readTime: isEn ? "5 min read" : "5 דק' קריאה",
+      date: "Oct 10, 2024"
+    },
+    {
+      id: 2,
+      title: isEn ? "Why Israeli Tech Entrepreneurs Are Buying Silver" : "למה יזמי הייטק ישראלים קונים כסף",
+      excerpt: isEn ? "Diversifying equity portfolios with tangible assets: A strategy for hedging market corrections." : "גיוון תיקי מניות עם נכסים מוחשיים: אסטרטגיה לגידור תיקוני שוק.",
+      type: "White Paper",
+      category: isEn ? 'Lavi Analysis' : 'ניתוח לביא',
+      readTime: isEn ? "12 min read" : "12 דק' קריאה",
+      date: "Sep 28, 2024"
+    },
+    {
+      id: 3,
+      title: isEn ? "Understanding the Israeli Silver Premium" : "הבנת פרמיית הכסף הישראלית",
+      excerpt: isEn ? "Why the secondary market in Israel offers superior liquidity and buy-back opportunities." : "מדוע השוק המשני בישראל מציע נזילות והזדמנויות רכישה חוזרת עדיפות.",
+      type: "Video",
+      category: isEn ? 'Lavi Analysis' : 'ניתוח לביא',
+      readTime: isEn ? "8 min watch" : "8 דק' צפייה",
+      date: "Sep 15, 2024"
+    },
+    {
+      id: 5,
+      title: isEn ? "The Gold-to-Silver Ratio: A Historical Perspective" : "יחס הזהב-כסף: פרספקטיבה היסטורית",
+      excerpt: isEn ? "Analyzing the 80:1 ratio and what mean reversion implies for future silver pricing." : "ניתוח יחס ה-80:1 ומה המשמעות של חזרה לממוצע עבור מחיר הכסף העתידי.",
+      type: "Article",
+      category: isEn ? 'Silver 101' : 'כסף 101',
+      readTime: isEn ? "6 min read" : "6 דק' קריאה",
+      date: "Aug 20, 2024"
+    }
+  ];
+};
+
+const getTestimonials = (lang: Lang) => {
+  const isEn = lang === 'en';
+  return [
+    {
+      id: 1,
+      name: isEn ? "Sarah Jenkins" : "שרה ג'נקינס",
+      role: isEn ? "Olah from New York (2023)" : "עולה מניו יורק (2023)",
+      quote: isEn ? "Moving money to Israel was a compliance nightmare. Lavi Silver Group offered a seamless way to secure assets locally without dealing with aggressive bank compliance officers." : "העברת כסף לישראל הייתה סיוט בירוקרטי. קבוצת לביא הציעה דרך חלקה להבטיח נכסים מקומית ללא התמודדות עם קציני ציות אגרסיביים.",
+      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
+    },
+    {
+      id: 2,
+      name: isEn ? "Yoni B." : "יוני ב.",
+      role: isEn ? "Fintech Founder, Tel Aviv" : "מייסד פינטק, תל אביב",
+      quote: isEn ? "My portfolio was 90% tech stocks. I needed a counter-balance outside the digital system. Lavi's advisory on physical allocation was exactly what I needed." : "התיק שלי היה 90% מניות טכנולוגיה. הייתי צריך איזון נגדי מחוץ למערכת הדיגיטלית. הייעוץ של לביא על הקצאה פיזית היה בדיוק מה שהייתי צריך.",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
+    }
+  ];
+};
 
 const MOCK_PERFORMANCE_DATA = [
   { month: 'Jan', silver: 100, gold: 100, sp500: 100 },
@@ -88,312 +712,10 @@ const MOCK_PERFORMANCE_DATA = [
 ];
 
 const ALLOCATION_DATA = [
-  { name: 'Equities / Tech Stocks', value: 50, color: '#334155' }, // slate-700
-  { name: 'Real Estate', value: 30, color: '#475569' }, // slate-600
-  { name: 'Cash / Bonds', value: 10, color: '#64748B' }, // slate-500
-  { name: 'Precious Metals', value: 10, color: '#E2E8F0' }, // lavi-silver
-];
-
-const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    name: "Canadian Silver Maple Leaf",
-    subtitle: "The World's Security Standard",
-    priceIndication: "Spot + $4.50 / oz",
-    priceOffset: 4.50,
-    weight: "1 oz",
-    purity: ".9999",
-    mint: "Royal Canadian Mint",
-    category: "coin",
-    tier: "Standard Bullion",
-    description: "The Royal Canadian Mint’s Silver Maple Leaf is one of the world’s most recognized coins. It features advanced security measures, including radial lines and a micro-engraved maple leaf with the year of issue. This coin offers the perfect blend of collectible beauty and investment-grade security.",
-    image: "https://images.unsplash.com/photo-1624623348275-52646241b17d?q=80&w=1000&auto=format&fit=crop", // Abstract silver representation
-    highlights: [
-      "Contains 1 oz of .9999 fine Silver.",
-      "Features RCM's MintShield™ technology to reduce white spots.",
-      "Sovereign coin backed by the Canadian government.",
-      "Obverse: Effigy of His Majesty King Charles III.",
-      "Reverse: Large, distinct maple leaf with micro-engraved security mark."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.99%",
-      weight: "31.10 grams",
-      diameter: "38 mm",
-      manufacturer: "Royal Canadian Mint"
-    }
-  },
-  {
-    id: 2,
-    name: "American Silver Eagle",
-    subtitle: "America's Official Bullion",
-    priceIndication: "Spot + $6.00 / oz",
-    priceOffset: 6.00,
-    weight: "1 oz",
-    purity: ".999",
-    mint: "United States Mint",
-    category: "coin",
-    tier: "Standard Bullion",
-    description: "The American Silver Eagle is the official silver bullion coin of the United States. It was first released by the United States Mint on November 24, 1986. It is struck only in the one-troy ounce size, which has a nominal face value of one dollar and is guaranteed to contain one troy ounce of 99.9% pure silver.",
-    image: "https://images.unsplash.com/photo-1574607383077-47ddc2dc4324?q=80&w=1000&auto=format&fit=crop", // Abstract silver coin
-    highlights: [
-      "The single most popular silver bullion coin in the world.",
-      "Content, weight, and purity guaranteed by the U.S. Government.",
-      "Eligible for Precious Metals IRAs.",
-      "Obverse: Adolph A. Weinman’s 'Walking Liberty' design.",
-      "Reverse: Landing Eagle design by Emily Damstra."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.9%",
-      weight: "31.10 grams",
-      diameter: "40.6 mm",
-      manufacturer: "United States Mint"
-    }
-  },
-  {
-    id: 3,
-    name: "Britannia Silver Coin",
-    subtitle: "A Symbol of Strength",
-    priceIndication: "Spot + $4.00 / oz",
-    priceOffset: 4.00,
-    weight: "1 oz",
-    purity: ".999",
-    mint: "The Royal Mint",
-    category: "coin",
-    tier: "Standard Bullion",
-    description: "Britannia has been the changing face of Britain for centuries, and this 2024 coin continues that legacy. The coin features four advanced security features, including a latent image that changes from a padlock to a trident, surface animation, tincture lines, and micro-text.",
-    image: "https://images.unsplash.com/photo-1610375461246-83648bfb1e25?q=80&w=1000&auto=format&fit=crop",
-    highlights: [
-      "Contains 1 oz of .999 fine Silver.",
-      "Four advanced security features for visual authentication.",
-      "Capital Gains Tax exempt in the UK (relevant for dual citizens).",
-      "Obverse: Official effigy of King Charles III.",
-      "Reverse: The legendary figure of Britannia standing firm."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.9%",
-      weight: "31.10 grams",
-      diameter: "38.61 mm",
-      manufacturer: "The Royal Mint (UK)"
-    }
-  },
-  {
-    id: 4,
-    name: "Australian Silver Kangaroo",
-    subtitle: "Iconic Australian Wildlife",
-    priceIndication: "Spot + $3.80 / oz",
-    priceOffset: 3.80,
-    weight: "1 oz",
-    purity: ".9999",
-    mint: "Perth Mint",
-    category: "coin",
-    tier: "Standard Bullion",
-    description: "Struck by the Perth Mint from 1 oz of .9999 pure silver, the Australian Kangaroo is a classic. The coin features a micro-laser engraved letter 'A' within the first A of AUSTRALIAN KANGAROO, visible only under magnification, providing superior authentication.",
-    image: "https://images.unsplash.com/photo-1589758438368-0ad531db3366?q=80&w=1000&auto=format&fit=crop",
-    highlights: [
-      "Contains 1 oz of .9999 fine Silver.",
-      "Sovereign coin backed by the Australian government.",
-      "Features a new Red Kangaroo design annually.",
-      "Includes authentication feature on reverse.",
-      "Unlimited mintage with 12-month production cap."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.99%",
-      weight: "31.10 grams",
-      diameter: "40.6 mm",
-      manufacturer: "The Perth Mint"
-    }
-  },
-  {
-    id: 5,
-    name: "PAMP Suisse Cast Bar",
-    subtitle: "Swiss Engineering Excellence",
-    priceIndication: "Spot + $2.50 / oz",
-    priceOffset: 2.50,
-    weight: "1 kg",
-    purity: ".999",
-    mint: "PAMP Suisse",
-    category: "bar",
-    tier: "Premium Collection",
-    description: "For the serious investor, the 1 kilogram PAMP Suisse cast bar offers lower premiums and high efficiency. These bars are cast, not struck, giving them a unique, rugged appearance while maintaining Swiss precision in weight and purity.",
-    image: "https://images.unsplash.com/photo-1521575256220-6385d8525e98?q=80&w=1000&auto=format&fit=crop",
-    highlights: [
-      "Contains 1 kilo (32.15 oz) of .999 fine Silver.",
-      "Cast bar style with a rustic, industrial finish.",
-      "Stamped with month and year of production.",
-      "Includes Assay card verifying weight and purity.",
-      "Produced by PAMP Suisse, a leader in precious metals."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.9%",
-      weight: "1000 grams",
-      diameter: "N/A (Bar)",
-      manufacturer: "PAMP Suisse",
-      thickness: "18 mm"
-    }
-  },
-  {
-    id: 6,
-    name: "Lavi Signature 100oz Bar",
-    subtitle: "Ultimate Wealth Storage",
-    priceIndication: "Spot + $1.90 / oz",
-    priceOffset: 1.90,
-    weight: "100 oz",
-    purity: ".999",
-    mint: "Asahi / RCM",
-    category: "bar",
-    tier: "Basic Rounds & Bars",
-    description: "The 100 oz silver bar is the industrial standard for wealth preservation. It offers the lowest premium over spot price, making it the most efficient vehicle for converting large cash positions into physical assets. Sourced from LBMA-approved refiners.",
-    image: "https://images.unsplash.com/photo-1605792657660-596af9009e82?q=80&w=1000&auto=format&fit=crop",
-    highlights: [
-      "Contains 100 oz of .999 fine Silver.",
-      "Lowest premium option for bulk investment.",
-      "Easy to stack and store.",
-      "Recognized globally for liquidity.",
-      "Ideal for long-term strategic holding."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.9%",
-      weight: "3.11 kg",
-      diameter: "N/A (Bar)",
-      manufacturer: "Various LBMA Brands"
-    }
-  },
-  {
-    id: 7,
-    name: "10 oz Silver Bar (Generic)",
-    subtitle: "Stackable & Liquid",
-    priceIndication: "Spot + $2.10 / oz",
-    priceOffset: 2.10,
-    weight: "10 oz",
-    purity: ".999",
-    mint: "Various",
-    category: "bar",
-    tier: "Basic Rounds & Bars",
-    description: "The 10 oz silver bar is a favorite among stackers for its balance of lower premiums and convenient handling size. Sourced from various reputable mints such as Sunshine Minting, Silvertowne, or Asahi.",
-    image: "https://images.unsplash.com/photo-1620325867502-221cfb5faa5f?q=80&w=1000&auto=format&fit=crop",
-    highlights: [
-      "Contains 10 oz of .999 fine Silver.",
-      "Lower premium than sovereign coins.",
-      "Easily stackable rectangular shape.",
-      "Excellent liquidity in secondary markets.",
-      "Brand may vary based on inventory."
-    ],
-    specs: {
-      material: "Fine Silver",
-      fineness: "99.9%",
-      weight: "311 grams",
-      diameter: "N/A",
-      manufacturer: "Various"
-    }
-  }
-];
-
-const ARTICLES: Article[] = [
-  {
-    id: 1,
-    title: "The Oleh's Guide to Wealth Preservation",
-    excerpt: "How to protect your savings from currency volatility during your first years in Israel. Navigating banking bureaucracy and tax structures.",
-    type: "Article",
-    category: 'Lavi Analysis',
-    readTime: "5 min read",
-    date: "Oct 10, 2024"
-  },
-  {
-    id: 2,
-    title: "Why Israeli Tech Entrepreneurs Are Buying Silver",
-    excerpt: "Diversifying equity portfolios with tangible assets: A strategy for hedging market corrections.",
-    type: "White Paper",
-    category: 'Lavi Analysis',
-    readTime: "12 min read",
-    date: "Sep 28, 2024"
-  },
-  {
-    id: 3,
-    title: "Understanding the Israeli Silver Premium",
-    excerpt: "Why the secondary market in Israel offers superior liquidity and buy-back opportunities.",
-    type: "Video",
-    category: 'Lavi Analysis',
-    readTime: "8 min watch",
-    date: "Sep 15, 2024"
-  },
-  {
-    id: 4,
-    title: "Silver Supply Deficit Hits Record Highs",
-    excerpt: "Global industrial demand outpaces mining supply for the 4th consecutive year.",
-    type: "External",
-    category: 'Expert Insights',
-    readTime: "Bloomberg",
-    source: "Bloomberg Commodities",
-    date: "Oct 12, 2024"
-  },
-  {
-    id: 5,
-    title: "The Gold-to-Silver Ratio: A Historical Perspective",
-    excerpt: "Analyzing the 80:1 ratio and what mean reversion implies for future silver pricing.",
-    type: "Article",
-    category: 'Silver 101',
-    readTime: "6 min read",
-    date: "Aug 20, 2024"
-  },
-  {
-    id: 6,
-    title: "October Market Briefing: Fed Pivot Implications",
-    excerpt: "Recording of our live monthly session discussing interest rates and precious metals.",
-    type: "Video",
-    category: 'Market Briefing',
-    readTime: "45 min watch",
-    date: "Oct 15, 2024"
-  },
-  {
-    id: 7,
-    title: "E-Book: The Silver Investor's Handbook",
-    excerpt: "A comprehensive guide to physical allocation, storage, and taxation in Israel.",
-    type: "White Paper",
-    category: 'Silver 101',
-    readTime: "PDF Download",
-    date: "July 01, 2024"
-  }
-];
-
-const WEBINARS: Webinar[] = [
-  {
-    id: 1,
-    title: "Monthly Market Outlook: Silver's Next Move",
-    date: "November 15, 2024 | 19:00 IST",
-    speaker: "Jonathan Lavi, Chief Strategist",
-    description: "Join us for our monthly deep dive into the precious metals markets. We'll discuss Fed interest rate implications, the Gold-to-Silver ratio, and specific opportunities in the Israeli local market.",
-    upcoming: true
-  }
-];
-
-const TESTIMONIALS = [
-  {
-    id: 1,
-    name: "Sarah Jenkins",
-    role: "Olah from New York (2023)",
-    quote: "Moving money to Israel was a compliance nightmare. Lavi Silver Group offered a seamless way to secure assets locally without dealing with aggressive bank compliance officers. It was the soft landing I needed.",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop"
-  },
-  {
-    id: 2,
-    name: "Yoni B.",
-    role: "Fintech Founder, Tel Aviv",
-    quote: "My portfolio was 90% tech stocks and options. I needed a counter-balance that was completely outside the digital system. Lavi's advisory on physical allocation was exactly what I needed to sleep better at night.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
-  },
-  {
-    id: 3,
-    name: "Michael & Rachel",
-    role: "Olim from UK",
-    quote: "We wanted to keep some liquidity outside the Israeli banking system. Lavi's English-speaking team explained the market clearly and helped us with secure delivery.",
-    image: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop"
-  }
+  { name: 'Equities', value: 50, color: '#334155' }, 
+  { name: 'Real Estate', value: 30, color: '#475569' }, 
+  { name: 'Bonds', value: 10, color: '#64748B' }, 
+  { name: 'Silver/Gold', value: 10, color: '#E2E8F0' }, 
 ];
 
 // --- Components ---
@@ -420,52 +742,28 @@ const SectionHeading = ({ title, subtitle, light = false }: { title: string, sub
   </div>
 );
 
-const Logo = () => {
-  const [imageError, setImageError] = useState(false);
-
-  return (
-    <div className="flex items-center gap-3 select-none">
-      <div className="relative h-10 w-10 flex items-center justify-center">
-         {!imageError ? (
-           <img 
-            src="./logo.png" 
-            alt="Lavi Silver Group" 
-            className="h-full w-auto object-contain"
-            onError={() => setImageError(true)}
-           />
-         ) : (
-           <svg viewBox="0 0 100 100" className="h-full w-full">
-              {/* Fallback SVG: Lion & Ingots representation */}
-              <defs>
-                <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#E2E8F0" />
-                  <stop offset="50%" stopColor="#94A3B8" />
-                  <stop offset="100%" stopColor="#E2E8F0" />
-                </linearGradient>
-              </defs>
-              {/* Stacked Ingots */}
-              <path d="M10 70 L30 70 L35 60 L15 60 Z" fill="url(#silverGrad)" />
-              <path d="M40 70 L60 70 L65 60 L45 60 Z" fill="url(#silverGrad)" opacity="0.8" />
-              <path d="M25 55 L45 55 L50 45 L30 45 Z" fill="url(#silverGrad)" opacity="0.9" />
-              {/* Stylized Lion Head Profile */}
-              <path d="M60 20 C 75 20, 90 30, 90 50 C 90 65, 80 70, 70 70 L 70 50 C 75 50, 80 45, 80 35 C 80 25, 70 25, 65 30 L 60 20 Z" fill="url(#silverGrad)" />
-           </svg>
-         )}
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="text-2xl font-serif font-bold tracking-wide text-white leading-none">Lavi</span>
-        <span className="text-[0.6rem] tracking-[0.25em] text-lavi-silverDark font-medium uppercase mt-1">Silver Group</span>
-      </div>
+const Logo = () => (
+  <div className="flex items-center gap-3 select-none">
+    <div className="relative h-10">
+       <img 
+        src="https://via.placeholder.com/150x150/0B1120/E2E8F0?text=LAVI+LOGO" 
+        alt="Lavi Silver Group" 
+        className="h-full w-auto object-contain"
+       />
     </div>
-  );
-};
+    <div className="flex flex-col justify-center">
+      <span className="text-2xl font-serif font-bold tracking-wide text-white leading-none">Lavi</span>
+      <span className="text-[0.6rem] tracking-[0.25em] text-lavi-silverDark font-medium uppercase mt-1">Silver Group</span>
+    </div>
+  </div>
+);
 
-const Ticker = () => {
+const Ticker = ({ lang }: { lang: Lang }) => {
   const [silverPrice, setSilverPrice] = useState(31.42);
   const [goldPrice, setGoldPrice] = useState(2645.10);
+  const t = CONTENT[lang].ticker;
 
   useEffect(() => {
-    // Simulate minor price fluctuations
     const interval = setInterval(() => {
       setSilverPrice(prev => prev + (Math.random() - 0.5) * 0.05);
       setGoldPrice(prev => prev + (Math.random() - 0.5) * 2);
@@ -477,246 +775,201 @@ const Ticker = () => {
     <div className="bg-lavi-dark border-b border-white/5 text-xs font-bold py-2 px-4 md:px-6 flex justify-between items-center relative z-50 text-white">
        <div className="flex items-center gap-6 overflow-hidden whitespace-nowrap">
           <div className="flex items-center gap-2">
-            <span className="text-lavi-silver uppercase tracking-widest hidden sm:inline">Live Markets</span>
+            <span className="text-lavi-silver uppercase tracking-widest hidden sm:inline">{t.live}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
           </div>
           
           <div className="flex items-center gap-4">
             <span className="text-slate-300">
-               Silver: <span className="text-white font-mono">${silverPrice.toFixed(2)}</span> 
-               <span className="text-green-400 ml-1.5 flex inline-flex items-center"><ArrowUpRight className="w-3 h-3 mr-0.5" /> 1.25%</span>
+               Ag: <span className="text-white font-mono">${silverPrice.toFixed(2)}</span> 
+               <span className="text-green-400 ms-1.5 flex inline-flex items-center"><ArrowUpRight className="w-3 h-3 me-0.5 rtl:rotate-180" /> 1.25%</span>
             </span>
             <span className="text-slate-500 hidden sm:inline">|</span>
             <span className="text-slate-300 hidden sm:inline">
-               Gold: <span className="text-lavi-gold font-mono">${goldPrice.toFixed(2)}</span> 
-               <span className="text-green-400 ml-1.5 flex inline-flex items-center"><ArrowUpRight className="w-3 h-3 mr-0.5" /> 0.42%</span>
+               Au: <span className="text-lavi-gold font-mono">${goldPrice.toFixed(2)}</span> 
+               <span className="text-green-400 ms-1.5 flex inline-flex items-center"><ArrowUpRight className="w-3 h-3 me-0.5 rtl:rotate-180" /> 0.42%</span>
             </span>
           </div>
        </div>
        <div className="hidden md:block text-slate-500 text-[10px] uppercase tracking-wider">
-          Prices delayed 15m
+          {t.delayed}
        </div>
     </div>
   );
 };
 
-const TestimonialsSection = () => (
-  <section className="container mx-auto px-6 py-24 bg-lavi-dark relative">
-    <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-    <SectionHeading title="Investor Stories" subtitle="Helping Olim and Tech Leaders navigate the Israeli financial landscape." />
-    <div className="grid md:grid-cols-3 gap-8">
-      {TESTIMONIALS.map((t) => (
-        <div key={t.id} className="bg-lavi-primary/20 p-8 rounded-xl border border-white/5 relative hover:bg-lavi-primary/40 transition-all duration-300 group">
-          <div className="absolute -top-4 -left-2 bg-lavi-dark p-2 rounded-full border border-white/10">
-             <Quote className="w-6 h-6 text-lavi-silver" />
-          </div>
-          <p className="text-slate-300 mb-8 relative z-10 italic leading-relaxed pt-2">"{t.quote}"</p>
-          <div className="flex items-center gap-4 mt-auto">
-             <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2 border-lavi-silver/30 group-hover:border-lavi-silver transition-colors" />
-             <div>
-               <h4 className="text-white font-bold font-serif">{t.name}</h4>
-               <p className="text-xs text-lavi-silverDark uppercase tracking-wider">{t.role}</p>
-             </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
-const GuideAccordion = ({ title, icon, children, light = false }: { title: string, icon: any, children?: React.ReactNode, light?: boolean }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const TestimonialsSection = ({ lang }: { lang: Lang }) => {
+  const testimonials = getTestimonials(lang);
   return (
-    <div className={`border rounded-xl overflow-hidden mb-4 ${light ? 'bg-white border-slate-200 shadow-sm' : 'bg-lavi-primary/20 border-white/10'}`}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between p-6 text-left transition-colors ${light ? 'hover:bg-slate-50' : 'hover:bg-lavi-primary/40'}`}
-      >
-        <div className="flex items-center gap-4">
-          <div className={`p-2 rounded-lg border ${light ? 'bg-slate-100 text-lavi-dark border-slate-200' : 'bg-lavi-dark text-lavi-silver border-white/10'}`}>
-             {icon}
+    <section className="container mx-auto px-6 py-24 bg-lavi-dark relative">
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+      <SectionHeading title={lang === 'en' ? "Investor Stories" : "סיפורי משקיעים"} subtitle={lang === 'en' ? "Helping Olim and Tech Leaders navigate the Israeli financial landscape." : "עוזרים לעולים ומובילי הייטק לנווט בנוף הפיננסי הישראלי."} />
+      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {testimonials.map((t) => (
+          <div key={t.id} className="bg-lavi-primary/20 p-8 rounded-xl border border-white/5 relative hover:bg-lavi-primary/40 transition-all duration-300 group">
+            <div className="absolute -top-4 -left-2 rtl:left-auto rtl:-right-2 bg-lavi-dark p-2 rounded-full border border-white/10">
+               <Quote className="w-6 h-6 text-lavi-silver" />
+            </div>
+            <p className="text-slate-300 mb-8 relative z-10 italic leading-relaxed pt-2">"{t.quote}"</p>
+            <div className="flex items-center gap-4 mt-auto">
+               <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2 border-lavi-silver/30 group-hover:border-lavi-silver transition-colors" />
+               <div>
+                 <h4 className="text-white font-bold font-serif">{t.name}</h4>
+                 <p className="text-xs text-lavi-silverDark uppercase tracking-wider">{t.role}</p>
+               </div>
+            </div>
           </div>
-          <span className={`text-lg md:text-xl font-serif font-bold ${light ? 'text-lavi-dark' : 'text-white'}`}>{title}</span>
-        </div>
-        <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${light ? 'text-slate-400' : 'text-slate-400'}`} />
-      </button>
-      <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className={`p-6 pt-0 leading-relaxed border-t font-light text-sm md:text-base ${light ? 'text-slate-600 border-slate-100' : 'text-slate-300 border-white/5'}`}>
-          {children}
-        </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 };
 
-const NewsletterSection = () => (
-  <div className="bg-gradient-to-r from-lavi-primary/50 to-lavi-dark border-t border-white/10 py-16">
-      <div className="container mx-auto px-6">
-          <div className="bg-lavi-silver rounded-2xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
-               {/* Pattern */}
-               <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
-               
-               <div className="relative z-10 max-w-xl">
-                    <div className="flex items-center gap-2 mb-3 text-lavi-dark/70 font-bold uppercase tracking-widest text-xs">
-                        <Mail className="w-4 h-4" /> Silver Rising Newsletter
-                    </div>
-                    <h3 className="text-3xl font-serif font-bold text-lavi-dark mb-4">Stay Ahead of the Market</h3>
-                    <p className="text-lavi-dark/80 font-medium leading-relaxed">
-                        Join 5,000+ investors receiving our weekly analysis on precious metals, Israeli economic updates, and exclusive buy-back opportunities.
-                    </p>
-               </div>
-
-               <div className="relative z-10 w-full md:w-auto flex-shrink-0">
-                    <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
-                        <input 
-                            type="email" 
-                            placeholder="Enter your email" 
-                            className="px-6 py-3 rounded-lg bg-white/90 border-0 text-lavi-dark placeholder:text-slate-500 focus:ring-2 focus:ring-lavi-dark/20 outline-none min-w-[300px]"
-                        />
-                        <button className="px-8 py-3 bg-lavi-dark text-white rounded-lg font-bold hover:bg-lavi-primary transition-colors shadow-lg">
-                            Subscribe
-                        </button>
-                    </form>
-                    <p className="text-lavi-dark/60 text-xs mt-3 text-center sm:text-left">
-                        No spam. Unsubscribe at any time.
-                    </p>
-               </div>
-          </div>
-      </div>
+const ComparisonTable = ({ data }: { data: any }) => (
+  <div className="w-full overflow-hidden border border-slate-200 rounded-xl shadow-lg bg-white my-8">
+     <div className="grid grid-cols-3 bg-lavi-primary text-white p-4 font-bold text-sm md:text-base border-b border-lavi-dark">
+        <div className="col-span-1"></div>
+        <div className="col-span-1 text-center flex items-center justify-center gap-2">
+           <HomeIcon className="w-4 h-4 text-lavi-silver" />
+           {data.headers[0]}
+        </div>
+        <div className="col-span-1 text-center flex items-center justify-center gap-2 text-lavi-silver">
+           <Coins className="w-4 h-4" />
+           {data.headers[1]}
+        </div>
+     </div>
+     <div className="divide-y divide-slate-100">
+        {data.rows.map((row: any, idx: number) => (
+           <div key={idx} className="grid grid-cols-3 p-4 hover:bg-slate-50 transition-colors">
+              <div className="col-span-1 font-bold text-lavi-dark text-xs md:text-sm flex items-center">
+                 {row.label}
+              </div>
+              <div className="col-span-1 text-center text-slate-600 text-xs md:text-sm flex items-center justify-center border-l border-r border-slate-100 px-2">
+                 {row.re}
+              </div>
+              <div className="col-span-1 text-center text-lavi-dark font-medium text-xs md:text-sm flex items-center justify-center bg-blue-50/50">
+                 {row.ag}
+              </div>
+           </div>
+        ))}
+     </div>
   </div>
 );
 
 // --- Pages ---
 
-const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
+const Home = ({ navigate, lang }: { navigate: (page: Page) => void, lang: Lang }) => {
+  const t = CONTENT[lang];
+  const products = getProducts(lang);
+  const articles = getArticles(lang);
+
   return (
-    <div className="space-y-24 pb-24">
+    <div className="space-y-0 pb-24">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden mb-24">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-lavi-dark/80 via-lavi-dark/90 to-lavi-dark z-10"></div>
-          {/* Abstract Silver Background */}
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1624623348275-52646241b17d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 animate-pulse-slow"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-lavi-dark/70 via-lavi-dark/80 to-lavi-dark z-10"></div>
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542385151-efd9000785a0?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40"></div>
         </div>
 
         <div className="relative z-20 container mx-auto px-6 text-center">
           <div className="animate-slide-up">
             <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-6 leading-tight">
-              Liquid. Secure.<br />
-              <span className="text-silver-gradient">Tangible Wealth.</span>
+              {t.hero.h1}<br />
+              <span className="text-silver-gradient">{t.hero.h1_gradient}</span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto mb-10 font-light leading-relaxed">
-              Israel's premier silver brokerage. Whether you are making Aliyah or diversifying a high-tech portfolio, we provide physical asset solutions outside the banking system.
+              {t.hero.sub}
             </p>
             <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <Button onClick={() => navigate(Page.PRODUCTS)}>View Portfolio</Button>
-              <Button variant="secondary" onClick={() => navigate(Page.ABOUT)}>Why Silver?</Button>
+              <Button onClick={() => navigate(Page.PRODUCTS)}>{t.hero.cta1}</Button>
+              <Button variant="secondary" onClick={() => navigate(Page.WHO_WE_SERVE)}>{t.hero.cta2}</Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Real Assets for Uncertain Times */}
-      <section className="container mx-auto px-6">
-        <SectionHeading 
-          title="Real Assets for Uncertain Times" 
-          subtitle="In a world of digital currencies and volatile markets, physical silver offers something increasingly rare: genuine, tangible wealth." 
-        />
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {[
-            { 
-              icon: <History className="w-10 h-10 text-lavi-silver" />, 
-              title: "Wealth Preservation", 
-              desc: "Silver has maintained purchasing power for millennia, serving as a reliable store of value across civilizations." 
-            },
-            { 
-              icon: <Zap className="w-10 h-10 text-lavi-silver" />, 
-              title: "Industrial Demand", 
-              desc: "Essential for solar panels, electronics, and EVs. Growing industrial use drives long-term value." 
-            },
-            { 
-              icon: <Lock className="w-10 h-10 text-lavi-silver" />, 
-              title: "Liquidity Outside Banks", 
-              desc: "Physical silver exists outside the banking system—no counterparty risk, no digital vulnerabilities." 
-            },
-            { 
-              icon: <BarChart3 className="w-10 h-10 text-lavi-silver" />, 
-              title: "Portfolio Diversification", 
-              desc: "Low correlation to stocks and bonds makes silver an effective hedge against market volatility." 
-            }
-          ].map((item, i) => (
-            <div key={i} className="bg-lavi-primary/50 p-8 rounded-xl border border-white/5 hover:border-lavi-silver/30 transition-all duration-300 group hover:-translate-y-1">
-              <div className="mb-6 bg-lavi-dark w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
-                {item.icon}
+      {/* 1. YTD Analysis */}
+      <section className="bg-white py-24 border-y border-slate-200">
+        <div className="container mx-auto px-6">
+          <div className="p-8 md:p-12 rounded-3xl relative overflow-hidden">
+            <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                   <div className="w-12 h-1 bg-lavi-dark rounded-full"></div>
+                   <span className="text-lavi-dark uppercase tracking-widest text-sm font-bold">{t.ytd.badge}</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-lavi-dark mb-6">{t.ytd.title}</h2>
+                <p className="text-slate-600 text-lg mb-6 leading-relaxed">
+                  {t.ytd.desc}
+                </p>
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                   <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                      <p className="text-slate-500 text-xs uppercase mb-1">{t.ytd.silverYtd}</p>
+                      <p className="text-2xl font-bold text-lavi-dark">+60%</p>
+                   </div>
+                   <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                      <p className="text-slate-500 text-xs uppercase mb-1">{t.ytd.sp500Ytd}</p>
+                      <p className="text-2xl font-bold text-slate-400">+12%</p>
+                   </div>
+                </div>
+                <Button variant="outline" onClick={() => navigate(Page.LEARN)} className="hover:text-lavi-dark hover:bg-slate-100">{t.ytd.readReport}</Button>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
-              <p className="text-slate-400 leading-relaxed font-light">{item.desc}</p>
+              <div className="h-[400px] w-full bg-white p-6 rounded-xl border border-slate-200 shadow-xl" dir="ltr">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={MOCK_PERFORMANCE_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" stroke="#64748B" tick={{fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis stroke="#64748B" tick={{fontSize: 12}} tickLine={false} axisLine={false} dx={-10} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#0B1120', borderRadius: '8px' }} 
+                      itemStyle={{ color: '#0B1120', paddingBottom: '4px' }}
+                      labelStyle={{ color: '#64748B', marginBottom: '8px' }}
+                    />
+                    <Legend wrapperStyle={{paddingTop: '20px'}} />
+                    <Line type="monotone" dataKey="silver" name="Silver" stroke="#0B1120" strokeWidth={3} dot={{r: 4, fill: "#0B1120"}} activeDot={{r: 6, fill: "#0B1120"}} />
+                    <Line type="monotone" dataKey="gold" name="Gold" stroke="#F59E0B" strokeWidth={2} dot={false} strokeOpacity={0.7} />
+                    <Line type="monotone" dataKey="sp500" name="S&P 500" stroke="#94A3B8" strokeWidth={2} strokeDasharray="5 5" dot={false} strokeOpacity={0.5} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      {/* Making Aliyah Feature Section */}
-      <section className="bg-lavi-primary/30 py-24 border-y border-white/5 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-lavi-silver/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
-          
-          <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center relative z-10">
-              <div className="order-2 md:order-1">
-                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6 leading-tight">
-                    Making Aliyah?<br/>
-                    <span className="text-silver-gradient">Bring Real Assets With You.</span>
-                  </h2>
-                  <p className="text-xl text-slate-300 mb-8 leading-relaxed font-light">
-                      Whether you're planning your move or already building your life in Israel, physical silver offers a unique opportunity to establish financial security outside the traditional banking system.
-                  </p>
-                  <ul className="space-y-5">
-                      {[
-                        "English-speaking advisors",
-                        "High Liquidity in Israeli Market",
-                        "Secure Insured Delivery",
-                        "Guidance on cash-to-asset conversion"
-                      ].map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-4 text-white text-lg">
-                           <div className="bg-lavi-silver/20 p-1 rounded-full">
-                             <CheckCircle className="w-5 h-5 text-lavi-silver" />
-                           </div>
-                           {item}
-                        </li>
-                      ))}
-                  </ul>
-                  <div className="mt-10">
-                     <Button onClick={() => navigate(Page.CONTACT)}>Start Your Consultation</Button>
-                  </div>
-              </div>
-              <div className="order-1 md:order-2 relative">
-                 <div className="absolute inset-0 bg-lavi-dark/20 z-10 rounded-xl"></div>
-                 <img 
-                    src="https://images.unsplash.com/photo-1574607383077-47ddc2dc4324?q=80&w=1000&auto=format&fit=crop" 
-                    alt="Silver Coins Stack" 
-                    className="rounded-xl shadow-2xl border border-white/10 w-full object-cover h-[500px] relative z-0 transform md:rotate-3 hover:rotate-0 transition-transform duration-700"
-                 />
-              </div>
-          </div>
-      </section>
-
-      {/* Strategic Allocation Section (Pie Chart) */}
-      <section className="container mx-auto px-6 py-12">
+      {/* Strategic Allocation Section (Pie Chart) - Dark */}
+      <section className="container mx-auto px-6 py-24">
          <div className="bg-lavi-dark border border-white/10 rounded-2xl p-8 md:p-12 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-lavi-silver/0 via-lavi-silver/50 to-lavi-silver/0"></div>
             
             <div className="grid md:grid-cols-2 gap-12 items-center">
-               <div className="relative h-[350px] w-full flex justify-center items-center">
+               <div className="relative h-[350px] w-full flex justify-center items-center" dir="ltr">
                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                          <Pie
                             data={ALLOCATION_DATA}
                             cx="50%"
                             cy="50%"
-                            innerRadius={80}
-                            outerRadius={120}
+                            innerRadius={60}
+                            outerRadius={100}
                             paddingAngle={5}
                             dataKey="value"
                             stroke="none"
+                            label={(props) => {
+                                // Simple customization for RTL support if needed, but numbers are universal
+                                const { cx, cy, midAngle, outerRadius, percent, name } = props;
+                                const RADIAN = Math.PI / 180;
+                                const radius = outerRadius + 20;
+                                const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                                const textAnchor = x > cx ? 'start' : 'end';
+                                return (
+                                    <text x={x} y={y} fill="#CBD5E1" textAnchor={textAnchor} dominantBaseline="central" fontSize={12} fontWeight="500" fontFamily="Inter, sans-serif">
+                                        {`${name} ${(percent * 100).toFixed(0)}%`}
+                                    </text>
+                                );
+                            }}
                          >
                             {ALLOCATION_DATA.map((entry, index) => (
                                <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
@@ -728,231 +981,148 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
                          />
                       </PieChart>
                    </ResponsiveContainer>
-                   {/* Center Text */}
                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                       <p className="text-3xl font-bold text-white">10%</p>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-widest">Recommended<br/>Allocation</p>
+                      <p className="text--[10px] text-slate-400 uppercase tracking-widest leading-tight">{lang === 'en' ? 'Recommended Allocation' : 'הקצאה מומלצת'}</p>
                    </div>
                </div>
 
                <div>
                   <div className="flex items-center gap-2 mb-4">
                      <LucidePieChart className="w-5 h-5 text-lavi-silver" />
-                     <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">Strategic Allocation</span>
+                     <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">{t.allocation.badge}</span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">Diversify Your Success</h2>
+                  <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">{t.allocation.title}</h2>
                   <p className="text-lg text-slate-300 mb-6 font-light leading-relaxed">
-                     Israeli high-tech portfolios are often heavily weighted in equities and options. Financial experts recommend allocating <strong>5-15% of your net worth</strong> to commodities to hedge against market corrections and currency devaluation.
+                     {t.allocation.desc}
                   </p>
                   <ul className="space-y-4 mb-8">
                      <li className="flex items-center gap-3 text-slate-400">
                         <div className="w-3 h-3 rounded-full bg-lavi-silver"></div>
-                        <span><strong>Precious Metals:</strong> Stability & Insurance</span>
+                        <span>{t.allocation.label1}</span>
                      </li>
                      <li className="flex items-center gap-3 text-slate-400">
                         <div className="w-3 h-3 rounded-full bg-slate-700"></div>
-                        <span><strong>Equities:</strong> Growth & Risk</span>
+                        <span>{t.allocation.label2}</span>
                      </li>
                   </ul>
-                  <Button variant="outline" onClick={() => navigate(Page.CONTACT)}>Discuss Allocation Strategy</Button>
+                  <Button variant="outline" onClick={() => navigate(Page.CONTACT)}>{t.allocation.cta}</Button>
                </div>
             </div>
          </div>
       </section>
 
-      {/* Market Fundamentals Section */}
-      <section className="container mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-           <div>
-              <div className="flex items-center gap-2 mb-4">
-                 <Scale className="w-5 h-5 text-lavi-silver" />
-                 <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">Market Fundamentals</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">The Israeli Silver Premium</h2>
-              <div className="space-y-6 text-slate-300 text-lg leading-relaxed font-light">
-                <p>
-                  The Israeli physical silver market is unique. Unlike other regions, the secondary market here is incredibly robust, with private buyers frequently paying <strong>above global spot prices</strong> for immediate physical delivery.
-                </p>
-                <p>
-                  This dynamic creates exceptional liquidity for Lavi clients. When you hold physical silver in Israel, you aren't just holding a global commodity; you are holding a scarce local asset that is in high demand.
-                </p>
-                <div className="flex gap-4 pt-4">
-                   <div className="border-l-4 border-lavi-silver pl-4">
-                      <p className="text-xl font-bold text-white">High Liquidity</p>
-                      <p className="text-xs text-slate-500 uppercase">Local Secondary Market</p>
-                   </div>
-                   <div className="border-l-4 border-slate-600 pl-4">
-              <p className="text-xl font-bold text-white">Demand &gt; Supply</p>
-                      <p className="text-xs text-slate-500 uppercase">Import Constraints</p>
-                   </div>
-                </div>
-              </div>
-           </div>
-           <div className="relative">
-              <div className="absolute inset-0 bg-lavi-silver/20 blur-3xl rounded-full opacity-30"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1610375461246-83648bfb1e25?q=80&w=2070&auto=format&fit=crop" 
-                alt="Silver Coins" 
-                className="relative z-10 rounded-xl shadow-2xl border border-white/10"
-              />
-           </div>
-        </div>
-      </section>
-
-      {/* Performance Comparison */}
-      <section className="container mx-auto px-6">
-        <div className="bg-lavi-primary/20 p-8 md:p-12 rounded-3xl border border-white/5 relative overflow-hidden">
-          {/* Subtle bg glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-lavi-silver/5 rounded-full blur-[100px]"></div>
-
-          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                 <div className="w-12 h-1 bg-lavi-silver rounded-full"></div>
-                 <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">YTD Analysis</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">Performance Comparison</h2>
-              <p className="text-slate-400 text-lg mb-6 leading-relaxed">
-                Silver is demonstrating exceptional strength in 2024. While Gold reaches all-time highs, Silver's dual nature as a monetary metal and an indispensable industrial component (solar, EVs, medical) drives explosive growth potential.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                 <div className="bg-lavi-dark/60 p-4 rounded-lg border border-white/5">
-                    <p className="text-slate-500 text-xs uppercase mb-1">Silver YTD</p>
-                    <p className="text-2xl font-bold text-lavi-silver">+60%</p>
-                 </div>
-                 <div className="bg-lavi-dark/60 p-4 rounded-lg border border-white/5">
-                    <p className="text-slate-500 text-xs uppercase mb-1">S&P 500 YTD</p>
-                    <p className="text-2xl font-bold text-slate-400">+12%</p>
-                 </div>
-              </div>
-              <Button variant="outline" onClick={() => navigate(Page.LEARN)}>Read Full Report</Button>
-            </div>
-            <div className="h-[400px] w-full bg-lavi-dark/80 p-6 rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={MOCK_PERFORMANCE_DATA}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
-                  <XAxis dataKey="month" stroke="#94A3B8" tick={{fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis stroke="#94A3B8" tick={{fontSize: 12}} tickLine={false} axisLine={false} dx={-10} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0B1120', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} 
-                    itemStyle={{ color: '#fff', paddingBottom: '4px' }}
-                    labelStyle={{ color: '#94A3B8', marginBottom: '8px' }}
-                  />
-                  <Legend wrapperStyle={{paddingTop: '20px'}} />
-                  <Line type="monotone" dataKey="silver" name="Silver" stroke="#E2E8F0" strokeWidth={3} dot={{r: 4, fill: "#E2E8F0"}} activeDot={{r: 6, fill: "#fff"}} />
-                  <Line type="monotone" dataKey="gold" name="Gold" stroke="#F59E0B" strokeWidth={2} dot={false} strokeOpacity={0.7} />
-                  <Line type="monotone" dataKey="sp500" name="S&P 500" stroke="#64748B" strokeWidth={2} strokeDasharray="5 5" dot={false} strokeOpacity={0.5} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Featured Products Preview */}
-      <section className="container mx-auto px-6">
-        <div className="flex justify-between items-end mb-12">
-            <div className="max-w-2xl">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-12 h-1 bg-lavi-silver rounded-full"></div>
-                    <span className="text-lavi-silver uppercase tracking-widest text-sm font-bold">Our Catalog</span>
+      <section className="bg-white py-24 border-y border-slate-200">
+        <div className="container mx-auto px-6">
+            <div className="flex justify-between items-end mb-12">
+                <div className="max-w-2xl">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-12 h-1 bg-lavi-dark rounded-full"></div>
+                        <span className="text-lavi-dark uppercase tracking-widest text-sm font-bold">{t.catalog.badge}</span>
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-serif font-bold text-lavi-dark mb-4">{t.catalog.title}</h2>
+                    <p className="text-slate-600 font-light text-lg">
+                        {t.catalog.desc}
+                    </p>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">Sovereign Mint Bullion</h2>
-                <p className="text-slate-400 font-light text-lg">
-                    We exclusively stock recognized sovereign coins and LBMA-approved bars to ensure maximum liquidity and security.
-                </p>
+                <Button variant="outline" onClick={() => navigate(Page.PRODUCTS)} className="hidden md:flex text-lavi-dark border-lavi-dark hover:bg-lavi-dark hover:text-white">
+                    {t.catalog.cta} <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </Button>
             </div>
-            <Button variant="outline" onClick={() => navigate(Page.PRODUCTS)} className="hidden md:flex">
-                View Full Catalog <ArrowRight className="w-4 h-4" />
-            </Button>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8">
-            {PRODUCTS.slice(0, 3).map((product) => (
-                <div 
-                    key={product.id} 
-                    onClick={() => navigate(Page.PRODUCTS)}
-                    className="group bg-lavi-primary/20 border border-white/5 rounded-xl overflow-hidden hover:border-lavi-silver/50 transition-all duration-300 cursor-pointer"
-                >
-                    <div className="h-48 overflow-hidden relative bg-white/5">
-                        <img 
-                            src={product.image} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
-                        />
-                         <div className="absolute top-3 right-3 bg-lavi-dark/80 backdrop-blur px-2 py-1 rounded text-[10px] text-white border border-white/10 uppercase tracking-widest">
-                            {product.category}
+            
+            <div className="grid md:grid-cols-3 gap-8">
+                {products.slice(0, 3).map((product) => (
+                    <div 
+                        key={product.id} 
+                        onClick={() => navigate(Page.PRODUCTS)}
+                        className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm"
+                    >
+                        <div className="h-48 overflow-hidden relative bg-slate-100">
+                            <img 
+                                src={product.image} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                             <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] text-lavi-dark border border-slate-200 font-bold uppercase tracking-widest shadow-sm">
+                                {product.category}
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-lavi-dark mb-1 group-hover:text-lavi-primary transition-colors">{product.name}</h3>
+                            <p className="text-slate-500 text-xs uppercase tracking-wider mb-3">{product.mint}</p>
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                                <span className="text-lavi-dark font-medium text-sm">{product.priceIndication}</span>
+                                <span className="text-slate-400 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
+                                    <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div className="p-6">
-                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lavi-silver transition-colors">{product.name}</h3>
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-3">{product.mint}</p>
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-                            <span className="text-lavi-silver font-medium text-sm">{product.priceIndication}</span>
-                            <span className="text-slate-400 group-hover:translate-x-1 transition-transform">
-                                <ArrowRight className="w-4 h-4" />
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-        <div className="mt-8 md:hidden">
-            <Button variant="outline" onClick={() => navigate(Page.PRODUCTS)} className="w-full">
-                View Full Catalog
-            </Button>
+                ))}
+            </div>
+            <div className="mt-8 md:hidden">
+                <Button variant="outline" onClick={() => navigate(Page.PRODUCTS)} className="w-full text-lavi-dark border-lavi-dark">
+                    {t.catalog.cta}
+                </Button>
+            </div>
         </div>
       </section>
 
       {/* Learn Preview */}
-      <section className="container mx-auto px-6 py-12 bg-lavi-primary/10 border-y border-white/5">
-         <div className="flex justify-between items-end mb-12">
-            <div>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">Investment Insights</h2>
-                <p className="text-slate-400 font-light text-lg max-w-2xl">
-                    Navigate the complexities of the Israeli financial system and global precious metals markets.
-                </p>
-            </div>
-            <Button variant="outline" onClick={() => navigate(Page.LEARN)} className="hidden md:flex">
-                Read All Articles <ArrowRight className="w-4 h-4" />
-            </Button>
-        </div>
+      <section className="bg-lavi-dark py-24 border-y border-white/5">
+         <div className="container mx-auto px-6">
+           <div className="flex justify-between items-end mb-12">
+              <div>
+                  <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">{t.insights.title}</h2>
+                  <p className="text-slate-300 font-light text-lg max-w-2xl">
+                      {t.insights.desc}
+                  </p>
+              </div>
+              <Button onClick={() => navigate(Page.LEARN)} className="hidden md:flex bg-white text-lavi-dark hover:bg-lavi-silver border-0">
+                  {t.insights.cta} <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </Button>
+          </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-            {ARTICLES.slice(0, 3).map((article) => (
-                <div key={article.id} onClick={() => navigate(Page.LEARN)} className="bg-lavi-dark border border-white/5 p-6 rounded-xl hover:border-lavi-silver/30 transition-all duration-300 cursor-pointer group">
-                    <div className="flex items-center gap-2 mb-3 text-lavi-silverDark text-[10px] uppercase tracking-widest font-bold">
-                        {article.type === 'Video' ? <PlayCircle className="w-3 h-3 text-lavi-silver" /> : <FileText className="w-3 h-3 text-lavi-silver" />}
-                        {article.readTime}
-                    </div>
-                    <h3 className="text-xl font-serif font-bold text-white mb-3 group-hover:text-lavi-silver transition-colors line-clamp-2">{article.title}</h3>
-                    <p className="text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed">{article.excerpt}</p>
-                    <div className="text-lavi-silver text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                        Read Now <ArrowRight className="w-3 h-3" />
-                    </div>
-                </div>
-            ))}
-        </div>
-         <div className="mt-8 md:hidden">
-            <Button variant="outline" onClick={() => navigate(Page.LEARN)} className="w-full">
-                Read All Articles
-            </Button>
+          <div className="grid md:grid-cols-3 gap-8">
+              {articles.slice(0, 3).map((article) => (
+                  <div key={article.id} onClick={() => navigate(Page.LEARN)} className="bg-lavi-primary/30 border border-white/10 p-6 rounded-xl hover:bg-lavi-primary/50 transition-all duration-300 cursor-pointer group">
+                      <div className="flex items-center gap-2 mb-3 text-lavi-silver text-[10px] uppercase tracking-widest font-bold">
+                          {article.type === 'Video' ? <PlayCircle className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                          {article.readTime}
+                      </div>
+                      <h3 className="text-xl font-serif font-bold text-white mb-3 group-hover:text-lavi-silver transition-colors line-clamp-2">{article.title}</h3>
+                      <p className="text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed">{article.excerpt}</p>
+                      <div className="text-white text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                          {lang === 'en' ? 'Read Now' : 'קרא עכשיו'} <ArrowRight className="w-3 h-3 rtl:rotate-180" />
+                      </div>
+                  </div>
+              ))}
+          </div>
+           <div className="mt-8 md:hidden">
+              <Button onClick={() => navigate(Page.LEARN)} className="w-full bg-white text-lavi-dark hover:bg-lavi-silver">
+                  {t.insights.cta}
+              </Button>
+          </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <TestimonialsSection />
+      <TestimonialsSection lang={lang} />
 
       {/* CTA */}
-      <section className="container mx-auto px-6 text-center">
+      <section className="container mx-auto px-6 text-center py-24">
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-white/10 rounded-2xl p-12 md:p-20 relative overflow-hidden">
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-lavi-silver/10 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">Take Control of Your Wealth</h2>
+          <div className="relative z-10 flex flex-col items-center">
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">{t.ctaSection.title}</h2>
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Don't wait for the next banking crisis or currency dip. Schedule a private consultation to discuss allocating a portion of your portfolio to physical silver.
+              {t.ctaSection.desc}
             </p>
-            <Button onClick={() => navigate(Page.CONTACT)}>Enquire Now</Button>
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <Button onClick={() => navigate(Page.PRODUCTS)}>{t.ctaSection.btn1}</Button>
+              <Button variant="outline" onClick={() => navigate(Page.CONTACT)}>{t.ctaSection.btn2}</Button>
+            </div>
           </div>
         </div>
       </section>
@@ -960,123 +1130,192 @@ const Home = ({ navigate }: { navigate: (page: Page) => void }) => {
   );
 };
 
-const About = ({ navigate }: { navigate: (page: Page) => void }) => {
+const WhoWeServe = ({ navigate, lang }: { navigate: (page: Page) => void, lang: Lang }) => {
+  const t = CONTENT[lang].whoWeServe;
   return (
     <div className="pt-0 bg-slate-50">
-      
-      {/* 1. Benefits for Investors (Top, Dark Theme) */}
-      <section className="bg-lavi-dark py-24 relative overflow-hidden">
-         {/* Decorative elements */}
+       <div className="bg-lavi-dark pt-24 pb-12">
+          <div className="container mx-auto px-6 text-center">
+             <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4">{t.title}</h1>
+             <p className="text-xl text-slate-300 max-w-2xl mx-auto font-light">
+                {t.sub}
+             </p>
+          </div>
+       </div>
+
+      {/* Making Aliyah Narrative & Comparison Section */}
+      <section className="bg-white py-24 border-y border-slate-200">
+          <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-start">
+              <div>
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-lavi-dark mb-6 leading-tight">
+                    {t.aliyahTitle}<br/>
+                    <span className="text-silver-gradient bg-clip-text text-transparent bg-gradient-to-r from-lavi-dark to-slate-500">{t.aliyahGradient}</span>
+                  </h2>
+                  <div className="space-y-6 text-slate-600 text-lg leading-relaxed">
+                      {t.aliyahIntro.map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                      ))}
+                  </div>
+                  <div className="mt-10">
+                     <Button onClick={() => navigate(Page.CONTACT)} className="bg-lavi-dark text-white hover:bg-lavi-primary">{t.aliyahCta}</Button>
+                  </div>
+              </div>
+              <div className="relative">
+                 {/* Real Estate vs Silver Table */}
+                 <ComparisonTable data={t.comparisonTable} />
+                 
+                 <div className="mt-8 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                     <div className="flex gap-4">
+                        <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 h-fit">
+                           <Quote className="w-6 h-6 text-lavi-dark" />
+                        </div>
+                        <div>
+                           <p className="text-slate-700 italic mb-4">
+                              "{lang === 'en' ? "Coming from the States, I was pushed towards real estate. The hidden fees alone would have killed my returns. Physical silver was the clean, liquid alternative I needed." : "בהגיעי מארה\"ב, דחפו אותי לנדל\"ן. העמלות הנסתרות לבדן היו הורגות את התשואה שלי. כסף פיזי היה האלטרנטיבה הנקייה והנזילה שהייתי צריך."}"
+                           </p>
+                           <p className="font-bold text-lavi-dark">- David S., Ra'anana</p>
+                        </div>
+                     </div>
+                 </div>
+              </div>
+          </div>
+      </section>
+
+      {/* Benefits for Investors (Olim vs Startup Nation) */}
+      <section className="bg-lavi-dark py-24 relative overflow-hidden border-t border-white/5 text-slate-300">
          <div className="absolute top-0 right-0 w-96 h-96 bg-lavi-silver/5 rounded-full blur-3xl pointer-events-none"></div>
          
          <div className="container mx-auto px-6 relative z-10">
-            <SectionHeading title="Benefits for Investors" subtitle="Tailored strategies for your financial background." light={false} />
+            <SectionHeading title={t.benefitsTitle} subtitle={t.benefitsSub} light={false} />
             
-            <div className="grid lg:grid-cols-2 gap-12">
+            <div className="grid lg:grid-cols-2 gap-16">
                {/* Column 1: For Olim */}
                <div>
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-8 border-b border-white/10 pb-4">
                       <div className="p-3 bg-white/10 rounded-full shadow-sm border border-white/10">
                           <Globe className="w-6 h-6 text-lavi-silver" />
                       </div>
-                      <h3 className="text-2xl font-serif font-bold text-white">For Olim</h3>
+                      <h3 className="text-2xl font-serif font-bold text-white">{t.olimTitle}</h3>
                   </div>
-                  <div className="space-y-4">
-                      <GuideAccordion title="Smarter Diversification" icon={<Briefcase className="w-5 h-5" />} light={false}>
-                          <p>Making aliyah is complex financially. Many olim default to keeping funds in US equities or rushing into illiquid Israeli real estate. Physical silver offers a smarter path to diversification—one that doesn't require local expertise, ongoing management, or navigating foreign tax treaties.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="Tangible Security" icon={<Anchor className="w-5 h-5" />} light={false}>
-                          <p>Unlike digital assets or paper investments, silver is real. You can hold it. It exists independently of any bank, brokerage, or financial institution. In a world of increasing digital complexity, there's profound value in owning something tangible that doesn't depend on passwords or third-party solvency.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="Instant Liquidity" icon={<Zap className="w-5 h-5" />} light={false}>
-                          <p>One of the greatest anxieties for olim is access to capital. Physical silver provides genuine liquidity outside the banking system. We offer a Buy-Back Program at competitive market rates with no waiting periods and no red tape.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="VAT Transparency" icon={<Info className="w-5 h-5" />} light={false}>
-                          <p>Silver purchases in Israel are subject to 17% VAT. However, if you are operating through an Israeli business entity (Ltd or Osek Murshe), you may be able to reclaim VAT on your silver purchases as a business expense, significantly reducing your cost basis.</p>
-                      </GuideAccordion>
+                  <div className="space-y-6 text-lg font-light leading-relaxed">
+                      {t.olimContent.map((paragraph, idx) => (
+                        <p key={idx}>{paragraph}</p>
+                      ))}
                   </div>
                </div>
 
                {/* Column 2: Startup Nation Investors */}
                <div>
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-8 border-b border-white/10 pb-4">
                       <div className="p-3 bg-white/10 rounded-full shadow-sm border border-white/10">
                           <TrendingUp className="w-6 h-6 text-lavi-silver" />
                       </div>
-                      <h3 className="text-2xl font-serif font-bold text-white">For Startup Nation Investors</h3>
+                      <h3 className="text-2xl font-serif font-bold text-white">{t.techTitle}</h3>
                   </div>
-                  <div className="space-y-4">
-                      <GuideAccordion title="The Concentration Problem" icon={<AlertTriangle className="w-5 h-5" />} light={false}>
-                          <p>Your wealth was likely created through tech. However, most post-exit portfolios (S&P 500, Tel Aviv Real Estate, VC Funds) are highly correlated to the same macro factors that drove your exit. You've diversified across vehicles, but not across risk factors.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="True Decorrelation" icon={<Scale className="w-5 h-5" />} light={false}>
-                          <p>Physical silver is driven by fundamentally different forces: industrial demand (solar, EVs), central bank policy, and supply constraints. When equities decline and risk appetite disappears, silver moves independently.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="Asymmetric Upside" icon={<BarChart3 className="w-5 h-5" />} light={false}>
-                          <p>The gold-silver ratio currently sits around 80:1. Historically, it averages closer to 50:1. Reversion to historical norms implies 60-150% upside from ratio normalization alone—before any increase in absolute gold prices.</p>
-                      </GuideAccordion>
-                      <GuideAccordion title="Privacy & Discretion" icon={<Eye className="w-5 h-5" />} light={false}>
-                          <p>Physical holdings don't appear on brokerage statements. They aren't tracked in centralized databases. We maintain strict confidentiality for all clients, ensuring your wealth remains private and under your control.</p>
-                      </GuideAccordion>
+                   <div className="space-y-6 text-lg font-light leading-relaxed">
+                      {t.techContent.map((paragraph, idx) => (
+                        <p key={idx}>{paragraph}</p>
+                      ))}
                   </div>
                </div>
             </div>
          </div>
       </section>
+    </div>
+  );
+};
 
-      {/* 2. About Lavi (Bottom, Split Design, Silver BG) */}
-      <section className="">
-        <div className="grid md:grid-cols-2 min-h-[600px]">
-          {/* Text Side - Silver BG */}
-          <div className="bg-slate-200 p-12 md:p-20 flex flex-col justify-center">
-             <div className="flex items-center gap-2 mb-6">
-                 <div className="w-12 h-1 bg-lavi-dark rounded-full"></div>
-                 <span className="text-lavi-dark uppercase tracking-widest text-sm font-bold">Our Philosophy</span>
-              </div>
-             <h2 className="text-4xl md:text-5xl font-serif font-bold text-lavi-dark mb-8">About Lavi Silver Group</h2>
-             <div className="space-y-6 text-slate-700 text-lg leading-relaxed">
-               <p className="font-medium">
-                  We are a boutique precious metals brokerage based in Tel Aviv, dedicated to helping investors secure their wealth outside the digital banking system.
+const About = ({ navigate, lang }: { navigate: (page: Page) => void, lang: Lang }) => {
+  const t = CONTENT[lang].about;
+  return (
+    <div className="pt-0 bg-slate-50">
+      
+      {/* 1. Who We Are */}
+      <section className="py-24 container mx-auto px-6">
+         <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="order-2 md:order-1 relative">
+                <img 
+                   src="https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=1000&auto=format&fit=crop" 
+                   alt="Advisory Meeting" 
+                   className="rounded-xl shadow-2xl w-full object-cover h-[500px]"
+                />
+                <div className="absolute -bottom-6 -right-6 rtl:right-auto rtl:-left-6 bg-lavi-dark p-8 rounded-xl shadow-xl max-w-xs hidden md:block">
+                   <p className="text-white font-serif text-lg leading-relaxed">"{lang === 'en' ? "We don't just sell bullion. We build strategies for wealth preservation." : "אנו לא רק מוכרים מתכות. אנו בונים אסטרטגיות לשימור עושר."}"</p>
+                </div>
+            </div>
+            <div className="order-1 md:order-2">
+               <div className="flex items-center gap-2 mb-4">
+                   <div className="w-12 h-1 bg-lavi-dark rounded-full"></div>
+                   <span className="text-lavi-dark uppercase tracking-widest text-sm font-bold">{t.badge}</span>
+                </div>
+               <h1 className="text-4xl md:text-5xl font-serif font-bold text-lavi-dark mb-6">{t.title}</h1>
+               <p className="text-lg text-slate-700 leading-relaxed mb-6 font-medium">
+                  {t.sub}
                </p>
-               <p className="font-light">
-                  Founded by Olim for Olim and High-Tech professionals, we understand the unique landscape of the Israeli economy. From navigating bureaucracy to hedging stock options, we provide more than just bullion—we provide financial clarity and peace of mind.
+               <p className="text-slate-600 leading-relaxed mb-8">
+                  {t.desc}
                </p>
-             </div>
-             
-             <div className="mt-10 grid grid-cols-2 gap-6">
-                {[
-                  {icon: Shield, text: "Fully Insured"},
-                  {icon: Coins, text: "Buy-Back Program"},
-                  {icon: Globe, text: "English Service"},
-                  {icon: Lock, text: "Private Vaulting"}
-                ].map((item, i) => (
-                   <div key={i} className="flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg shadow-sm">
-                         <item.icon className="w-5 h-5 text-lavi-dark" />
+               <div className="grid grid-cols-2 gap-6">
+                  {t.points.map((point, idx) => {
+                    const icons = [Award, Users, Shield, Globe];
+                    const Icon = icons[idx] || Shield;
+                    return (
+                      <div key={idx} className="flex items-center gap-3">
+                         <Icon className="w-6 h-6 text-lavi-dark" />
+                         <span className="font-bold text-slate-800">{point}</span>
                       </div>
-                      <span className="text-lavi-dark font-medium text-sm">{item.text}</span>
-                   </div>
-                ))}
-             </div>
-          </div>
-          
-          {/* Image Side */}
-          <div className="relative h-full min-h-[400px]">
-             <img 
-               src="https://images.unsplash.com/photo-1620325867502-221cfb5faa5f?q=80&w=1000&auto=format&fit=crop" 
-               alt="Silver Bars" 
-               className="absolute inset-0 w-full h-full object-cover"
-             />
-             <div className="absolute inset-0 bg-lavi-dark/20 mix-blend-multiply"></div>
-          </div>
-        </div>
+                    )
+                  })}
+               </div>
+            </div>
+         </div>
+      </section>
+
+      {/* 2. Why Choose Lavi */}
+      <section className="bg-white py-24 border-y border-slate-200">
+         <div className="container mx-auto px-6">
+            <SectionHeading title={t.whyTitle} subtitle={t.whySub} light={true} />
+            
+            <div className="grid md:grid-cols-3 gap-8">
+               {t.features.map((feature, idx) => {
+                 const icons = [Phone, Scale, Package]; // Scale instead of Map as placeholder or custom
+                 const Icon = icons[idx] || Phone;
+                 return (
+                  <div key={idx} className="p-8 bg-slate-50 rounded-xl border border-slate-100 hover:shadow-lg transition-all duration-300">
+                      <div className="w-14 h-14 bg-lavi-dark text-white rounded-lg flex items-center justify-center mb-6">
+                        <Icon className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-xl font-bold text-lavi-dark mb-4">{feature.title}</h3>
+                      <p className="text-slate-600 leading-relaxed">
+                        {feature.desc}
+                      </p>
+                  </div>
+                 )
+               })}
+            </div>
+         </div>
+      </section>
+
+      {/* 3. CTA */}
+      <section className="bg-lavi-dark py-20 text-center">
+         <div className="container mx-auto px-6">
+            <h2 className="text-3xl font-serif font-bold text-white mb-6">{t.ctaTitle}</h2>
+            <p className="text-slate-300 mb-8 text-lg max-w-2xl mx-auto">
+               {t.ctaDesc}
+            </p>
+            <div className="flex justify-center">
+                <Button onClick={() => navigate(Page.CONTACT)}>{t.ctaBtn}</Button>
+            </div>
+         </div>
       </section>
 
     </div>
   );
 };
 
-const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
+const Products = ({ navigate, lang }: { navigate: (page: Page) => void, lang: Lang }) => {
+  const t = CONTENT[lang].products;
+  const products = getProducts(lang);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   // Filtering & Sorting State
@@ -1085,10 +1324,10 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
   const [sortBy, setSortBy] = useState<'Featured' | 'PriceLow' | 'PriceHigh'>('Featured');
   
   // Derive unique mints for filter
-  const mints = ['All', ...Array.from(new Set(PRODUCTS.map(p => p.mint)))];
+  const mints = ['All', ...Array.from(new Set(products.map(p => p.mint)))];
 
   // Filter Logic
-  const filteredProducts = PRODUCTS.filter(p => {
+  const filteredProducts = products.filter(p => {
       const matchTier = activeTier === 'All' || p.tier === activeTier;
       const matchMint = activeMint === 'All' || p.mint === activeMint;
       return matchTier && matchMint;
@@ -1099,7 +1338,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
   });
 
   const SimilarProducts = ({ category, currentId }: { category: string, currentId: number }) => {
-      const similar = PRODUCTS
+      const similar = products
         .filter(p => p.id !== currentId && p.tier === category)
         .slice(0, 3);
       
@@ -1107,7 +1346,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
 
       return (
         <div className="mt-24 border-t border-slate-200 pt-16">
-            <h3 className="text-2xl font-serif font-bold text-lavi-dark mb-8">You Might Also Like</h3>
+            <h3 className="text-2xl font-serif font-bold text-lavi-dark mb-8">{t.youMightLike}</h3>
             <div className="grid md:grid-cols-3 gap-8">
                 {similar.map(product => (
                     <div key={product.id} onClick={() => { setSelectedProduct(product); window.scrollTo(0,0); }} className="cursor-pointer group">
@@ -1125,62 +1364,30 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
 
   const SellToUsSection = () => (
       <div className="mt-32 relative z-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-slate-50 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 -mt-16 -mr-16 rtl:-ml-16 w-64 h-64 bg-slate-50 rounded-full blur-3xl"></div>
           
-          <div className="grid md:grid-cols-2 gap-12 p-8 md:p-12 items-center relative z-20">
-              <div className="space-y-6">
+          <div className="grid gap-12 p-8 md:p-12 items-center relative z-20">
+              <div className="space-y-6 text-center md:text-start">
                   <div>
-                      <h3 className="text-3xl md:text-4xl font-serif font-bold text-lavi-dark mb-2">Sell Your Silver to Lavi</h3>
-                      <div className="h-1 w-20 bg-lavi-dark rounded-full"></div>
+                      <h3 className="text-3xl md:text-4xl font-serif font-bold text-lavi-dark mb-2">{t.buyBackTitle}</h3>
+                      <div className="h-1 w-20 bg-lavi-dark rounded-full mx-auto md:mx-0"></div>
                   </div>
-                  <p className="text-lg text-slate-600 leading-relaxed">
-                      We offer a consistent market for your metals. Enjoy transparent, competitive buy-back rates for all sovereign bullion and LBMA-approved bars.
+                  <p className="text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto md:mx-0">
+                      {t.buyBackDesc}
                   </p>
-                  <ul className="space-y-4">
-                      <li className="flex items-start gap-3 text-slate-700">
-                          <div className="p-1 bg-green-100 rounded-full mt-0.5"><Check className="w-3 h-3 text-green-600" /></div>
-                          <span><strong>Liquidity</strong> for Lavi clients</span>
-                      </li>
-                      <li className="flex items-start gap-3 text-slate-700">
-                          <div className="p-1 bg-green-100 rounded-full mt-0.5"><Check className="w-3 h-3 text-green-600" /></div>
-                          <span>Immediate payment via bank transfer (NIS/USD)</span>
-                      </li>
-                      <li className="flex items-start gap-3 text-slate-700">
-                          <div className="p-1 bg-green-100 rounded-full mt-0.5"><Check className="w-3 h-3 text-green-600" /></div>
-                          <span>Secure drop-off in Tel Aviv or insured courier</span>
-                      </li>
+                  <ul className="space-y-4 inline-block text-start">
+                      {t.buyBackPoints.map((point, i) => (
+                        <li key={i} className="flex items-start gap-3 text-slate-700">
+                            <div className="p-1 bg-green-100 rounded-full mt-0.5"><Check className="w-3 h-3 text-green-600" /></div>
+                            <span>{point}</span>
+                        </li>
+                      ))}
                   </ul>
-                  <div className="pt-4">
+                  <div className="pt-4 flex justify-center md:justify-start">
                       <Button variant="outline" onClick={() => navigate(Page.CONTACT)} className="w-full md:w-auto hover:text-white hover:bg-lavi-dark">
-                          Request Buy-Back Offer
+                          {t.buyBackBtn}
                       </Button>
                   </div>
-              </div>
-
-              <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 relative">
-                  <div className="flex items-center gap-4 mb-8 border-b border-slate-200 pb-6">
-                       <div className="p-3 bg-white rounded-lg shadow-sm">
-                          <Shield className="w-8 h-8 text-lavi-dark" />
-                       </div>
-                       <div>
-                           <h4 className="text-lavi-dark font-bold text-lg">Live Buy-Back Rates</h4>
-                           <p className="text-xs text-slate-500 uppercase tracking-wider">Updated Daily</p>
-                       </div>
-                  </div>
-                   <div className="space-y-4">
-                       {[
-                         { name: "1 oz Silver Eagle", price: "Spot + $2.00" },
-                         { name: "1 oz Maple Leaf", price: "Spot + $1.50" },
-                         { name: "100 oz Bar", price: "Spot + $0.80" },
-                         { name: "Generic Rounds", price: "Spot + $0.50" }
-                       ].map((item, i) => (
-                           <div key={i} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-                               <span className="text-slate-700 text-sm font-medium">{item.name}</span>
-                               <span className="text-lavi-dark font-mono font-bold">{item.price}</span>
-                           </div>
-                       ))}
-                       <p className="text-[10px] text-slate-500 mt-4 text-center">*Indicative pricing based on mint condition items.</p>
-                   </div>
               </div>
           </div>
       </div>
@@ -1195,8 +1402,8 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                 onClick={() => setSelectedProduct(null)} 
                 className="flex items-center gap-2 text-slate-500 hover:text-lavi-dark transition-colors mb-8 group"
               >
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                  Back to Catalog
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 rtl:group-hover:translate-x-1 rtl:rotate-180 transition-transform" />
+                  {t.back}
               </button>
 
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 relative">
@@ -1204,7 +1411,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                   <div className="space-y-6">
                       <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 p-8 shadow-xl relative z-0">
                            {/* Abstract 'Zoom' lens effect hint */}
-                           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded p-2 border border-slate-200 shadow-sm">
+                           <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4 bg-white/90 backdrop-blur rounded p-2 border border-slate-200 shadow-sm">
                                <Search className="w-4 h-4 text-slate-700" />
                            </div>
                            <img 
@@ -1239,7 +1446,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                       
                       <div className="flex items-baseline gap-4 mb-8 border-b border-slate-200 pb-8">
                           <span className="text-3xl font-bold text-lavi-dark">{selectedProduct.priceIndication}</span>
-                          <span className="text-slate-500 text-sm">*Indicative Pricing</span>
+                          <span className="text-slate-500 text-sm">*{t.indicative}</span>
                       </div>
 
                       <div className="space-y-8">
@@ -1247,13 +1454,13 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                               <p className="text-slate-700 leading-relaxed mb-6">
                                   {selectedProduct.description}
                               </p>
-                              <Button className="w-full md:w-auto hover:text-white hover:bg-lavi-dark" onClick={() => navigate(Page.CONTACT)}>Enquire Now</Button>
+                              <Button className="w-full md:w-auto hover:text-white hover:bg-lavi-dark" onClick={() => navigate(Page.CONTACT)}>{t.enquire}</Button>
                           </div>
 
                           {/* Highlights */}
                           <div>
                               <h3 className="text-lavi-dark font-bold mb-4 flex items-center gap-2">
-                                  <Award className="w-5 h-5 text-lavi-primary" /> Product Highlights
+                                  <Award className="w-5 h-5 text-lavi-primary" /> {t.highlights}
                               </h3>
                               <ul className="space-y-2">
                                   {selectedProduct.highlights.map((highlight, idx) => (
@@ -1268,7 +1475,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                           {/* Specs Table */}
                           <div>
                               <h3 className="text-lavi-dark font-bold mb-4 flex items-center gap-2">
-                                  <Scale className="w-5 h-5 text-lavi-primary" /> Specifications
+                                  <Scale className="w-5 h-5 text-lavi-primary" /> {t.specs}
                               </h3>
                               <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-200">
                                   {Object.entries(selectedProduct.specs).map(([key, value], idx) => (
@@ -1294,7 +1501,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
   // CATALOG VIEW
   return (
     <div className="pt-24 pb-24 container mx-auto px-6 min-h-screen">
-       <SectionHeading title="Our Catalog" subtitle="Investment grade bullion from the world's most trusted mints." light={true} />
+       <SectionHeading title={t.badge} subtitle={t.desc} light={true} />
        
        <div className="flex flex-col lg:flex-row gap-8">
            {/* Sidebar Filters */}
@@ -1302,12 +1509,12 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                
                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                    <div className="flex items-center gap-2 mb-4 text-lavi-dark font-bold">
-                       <Filter className="w-4 h-4" /> Filters
+                       <Filter className="w-4 h-4" /> {t.filters}
                    </div>
                    
                    {/* Collections */}
                    <div className="mb-6">
-                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Collection</h4>
+                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t.collection}</h4>
                        <div className="space-y-2">
                            {['All', 'Basic Rounds & Bars', 'Standard Bullion', 'Premium Collection'].map(tier => (
                                <label key={tier} className="flex items-center gap-3 cursor-pointer group">
@@ -1331,7 +1538,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
 
                    {/* Mints */}
                    <div>
-                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Mint</h4>
+                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t.mint}</h4>
                        <div className="space-y-2">
                            {mints.map(mint => (
                                <label key={mint} className="flex items-center gap-3 cursor-pointer group">
@@ -1356,9 +1563,9 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
 
                {/* Banner */}
                <div className="bg-lavi-dark p-6 rounded-xl text-white shadow-lg">
-                   <h4 className="font-bold text-lg mb-2 leading-tight">New to Silver?</h4>
-                   <p className="text-sm mb-4 text-slate-300">Download our free investor guide.</p>
-                   <button onClick={() => navigate(Page.LEARN)} className="text-xs font-bold uppercase tracking-wider border-b border-lavi-silver pb-0.5 text-lavi-silver">Learn More</button>
+                   <h4 className="font-bold text-lg mb-2 leading-tight">{t.bannerTitle}</h4>
+                   <p className="text-sm mb-4 text-slate-300">{t.bannerDesc}</p>
+                   <button onClick={() => navigate(Page.LEARN)} className="text-xs font-bold uppercase tracking-wider border-b border-lavi-silver pb-0.5 text-lavi-silver">{t.bannerLink}</button>
                </div>
            </div>
 
@@ -1366,21 +1573,21 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
            <div className="flex-1">
                {/* Top Bar */}
                <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                   <span className="text-slate-500 text-sm mb-4 sm:mb-0">Showing <strong>{filteredProducts.length}</strong> results</span>
+                   <span className="text-slate-500 text-sm mb-4 sm:mb-0">{t.showing} <strong>{filteredProducts.length}</strong> {t.results}</span>
                    
                    <div className="flex items-center gap-3">
-                       <span className="text-slate-500 text-sm">Sort by:</span>
+                       <span className="text-slate-500 text-sm">{t.sortBy}</span>
                        <div className="relative group">
                            <select 
                               value={sortBy}
                               onChange={(e) => setSortBy(e.target.value as any)}
-                              className="bg-slate-50 border border-slate-200 rounded-md py-1.5 px-3 text-sm text-slate-700 outline-none focus:border-lavi-dark cursor-pointer appearance-none pr-8"
+                              className="bg-slate-50 border border-slate-200 rounded-md py-1.5 px-3 text-sm text-slate-700 outline-none focus:border-lavi-dark cursor-pointer appearance-none pe-8"
                            >
-                               <option value="Featured">Featured</option>
-                               <option value="PriceLow">Price: Low to High</option>
-                               <option value="PriceHigh">Price: High to Low</option>
+                               <option value="Featured">{t.sortOptions.featured}</option>
+                               <option value="PriceLow">{t.sortOptions.low}</option>
+                               <option value="PriceHigh">{t.sortOptions.high}</option>
                            </select>
-                           <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                           <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 rtl:right-auto rtl:left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                        </div>
                    </div>
                </div>
@@ -1405,7 +1612,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                                </div>
                                
                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                   <p className="text-white text-xs font-bold text-center">View Details</p>
+                                   <p className="text-white text-xs font-bold text-center">{t.viewDetails}</p>
                                </div>
                             </div>
                             <div className="p-6 flex-1 flex flex-col">
@@ -1417,11 +1624,11 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                                
                                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                                   <div className="flex flex-col">
-                                      <span className="text-[10px] text-slate-500 uppercase">Indicative</span>
+                                      <span className="text-[10px] text-slate-500 uppercase">{t.indicative}</span>
                                       <span className="text-lavi-dark font-bold">{product.priceIndication}</span>
                                   </div>
                                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-lavi-dark group-hover:text-white transition-colors">
-                                      <ArrowRight className="w-4 h-4" />
+                                      <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                                   </div>
                                </div>
                             </div>
@@ -1433,7 +1640,7 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
                        <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                        <h3 className="text-xl font-bold text-slate-800 mb-2">No products found</h3>
                        <p className="text-slate-500 mb-6">Try adjusting your filters to see more results.</p>
-                       <Button variant="secondary" onClick={() => { setActiveTier('All'); setActiveMint('All'); }} className="text-slate-600 hover:text-lavi-dark">Clear Filters</Button>
+                       <Button variant="secondary" onClick={() => { setActiveTier('All'); setActiveMint('All'); }} className="text-slate-600 hover:text-lavi-dark">{t.clear}</Button>
                    </div>
                )}
            </div>
@@ -1442,19 +1649,21 @@ const Products = ({ navigate }: { navigate: (page: Page) => void }) => {
   );
 };
 
-const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
-   const [activeCategory, setActiveCategory] = useState<ArticleCategory>('All');
+const Learn = ({ navigate, lang }: { navigate: (page: Page) => void, lang: Lang }) => {
+   const [activeCategory, setActiveCategory] = useState<string>('All');
+   const t = CONTENT[lang].learn;
+   const articles = getArticles(lang);
 
    // Filter articles
-   const filteredArticles = ARTICLES.filter(article => 
+   const filteredArticles = articles.filter(article => 
        activeCategory === 'All' ? true : article.category === activeCategory
    );
 
-   const categories: ArticleCategory[] = ['All', 'Market Briefing', 'Expert Insights', 'Lavi Analysis', 'Silver 101'];
+   const categories = t.categories;
 
    return (
       <div className="pt-24 pb-24 container mx-auto px-6">
-         <SectionHeading title="Knowledge Hub" subtitle="Navigate the complexities of the Israeli financial system and global precious metals markets." light={true} />
+         <SectionHeading title={t.title} subtitle={t.sub} light={true} />
          
          {/* Category Navigation */}
          <div className="flex flex-wrap justify-center gap-4 mb-16">
@@ -1474,30 +1683,30 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
          </div>
 
          {/* Featured Content: Next Webinar */}
-         {(activeCategory === 'All' || activeCategory === 'Market Briefing') && (
+         {(activeCategory === 'All' || activeCategory === t.categories[1]) && (
             <div className="mb-20 animate-fade-in">
                 <div className="max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl p-8 relative overflow-hidden shadow-xl">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100 rounded-full blur-2xl"></div>
+                    <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-32 h-32 bg-slate-100 rounded-full blur-2xl"></div>
                     
                     <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
                         <div className="bg-lavi-dark border border-white/10 p-6 rounded-xl text-center min-w-[200px] shadow-lg">
                              <div className="text-lavi-silver mb-2">
                                 <Calendar className="w-8 h-8 mx-auto" />
                              </div>
-                             <p className="text-slate-300 text-xs uppercase tracking-widest mb-1">Next Session</p>
+                             <p className="text-slate-300 text-xs uppercase tracking-widest mb-1">{t.nextSession}</p>
                              <p className="text-white font-bold text-2xl">Nov 15</p>
                              <p className="text-lavi-silver text-sm">19:00 IST</p>
                         </div>
-                        <div className="flex-1 text-center md:text-left space-y-4">
+                        <div className="flex-1 text-center md:text-start space-y-4">
                             <div className="inline-block px-3 py-1 rounded bg-red-50 text-red-600 border border-red-100 text-[10px] font-bold uppercase tracking-wider mb-2">
-                                Monthly Market Briefing
+                                {t.monthlyBriefing}
                             </div>
-                            <h3 className="text-3xl font-serif font-bold text-lavi-dark leading-tight">Silver's Next Move: Monthly Outlook</h3>
+                            <h3 className="text-3xl font-serif font-bold text-lavi-dark leading-tight">{t.webinarTitle}</h3>
                             <p className="text-slate-600 font-light leading-relaxed">
-                                Join Jonathan Lavi for a live analysis of Fed interest rate implications, the Gold-to-Silver ratio, and specific opportunities in the Israeli local market.
+                                {t.webinarDesc}
                             </p>
                             <div className="pt-2">
-                                <Button className="hover:text-white hover:bg-lavi-dark">Register for Webinar</Button>
+                                <Button className="hover:text-white hover:bg-lavi-dark">{t.register}</Button>
                             </div>
                         </div>
                     </div>
@@ -1512,8 +1721,6 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
                   <div className="p-8 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-6">
                          <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            article.category === 'Expert Insights' ? 'bg-indigo-50 text-indigo-700' :
-                            article.category === 'Silver 101' ? 'bg-emerald-50 text-emerald-700' :
                             'bg-slate-100 text-slate-700'
                          }`}>
                             {article.category}
@@ -1535,14 +1742,11 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
                           <span className="text-xs text-slate-500 font-medium">
                               {article.date} • {article.readTime}
                           </span>
-                          {article.type === 'External' && article.source && (
-                              <span className="text-[10px] text-slate-500 uppercase tracking-widest">{article.source}</span>
-                          )}
                       </div>
                   </div>
                   <div className="bg-slate-50 p-3 text-center border-t border-slate-200">
                       <span className="text-xs text-lavi-dark font-bold uppercase tracking-wider flex items-center justify-center gap-2 group-hover:gap-3 transition-all">
-                          {article.type === 'Video' ? 'Watch Now' : 'Read Article'} <ArrowRight className="w-3 h-3" />
+                          {article.type === 'Video' ? t.watch : t.read} <ArrowRight className="w-3 h-3 rtl:rotate-180" />
                       </span>
                   </div>
                </div>
@@ -1550,18 +1754,16 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
          </div>
 
          {/* E-Books Section */}
-         {(activeCategory === 'All' || activeCategory === 'Silver 101') && (
+         {(activeCategory === 'All' || activeCategory === t.categories[4]) && (
             <div className="mt-24 bg-lavi-dark border border-white/5 rounded-2xl p-10 md:p-16 text-center relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-lavi-silver/50 to-transparent"></div>
                 <div className="relative z-10 max-w-2xl mx-auto">
                     <GraduationCap className="w-12 h-12 text-lavi-silver mx-auto mb-6" />
-                    <h2 className="text-3xl font-serif font-bold text-white mb-4">The Silver Investor's Handbook</h2>
+                    <h2 className="text-3xl font-serif font-bold text-white mb-4">{t.ebookTitle}</h2>
                     <p className="text-slate-300 mb-8 leading-relaxed">
-                        Download our comprehensive guide to physical allocation, storage, and taxation in Israel.
+                        {t.ebookDesc}
                     </p>
-                    <div className="flex justify-center">
-                        <Button variant="primary" className="mx-auto">Download Free E-Book</Button>
-                    </div>
+                    <Button variant="primary" className="mx-auto">{t.download}</Button>
                 </div>
             </div>
          )}
@@ -1569,38 +1771,40 @@ const Learn = ({ navigate }: { navigate: (page: Page) => void }) => {
    );
 };
 
-const Contact = () => {
+const Contact = ({ lang }: { lang: Lang }) => {
+   const t = CONTENT[lang].contact;
+   const address = CONTENT[lang].address;
    return (
       <div className="pt-24 pb-24 container mx-auto px-6">
-         <SectionHeading title="Start Your Journey" subtitle="Schedule a consultation with our wealth preservation experts." light={true} />
+         <SectionHeading title={t.title} subtitle={t.sub} light={true} />
          <div className="grid lg:grid-cols-2 gap-16 max-w-6xl mx-auto">
             <div className="space-y-8">
                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="text-xl font-bold text-lavi-dark mb-6">Contact Information</h3>
+                  <h3 className="text-xl font-bold text-lavi-dark mb-6">{t.infoTitle}</h3>
                   <div className="space-y-6">
                      <div className="flex items-center gap-4 text-slate-600">
                         <Phone className="w-6 h-6 text-lavi-dark" />
-                        <span>+972 (0) 3-555-0123</span>
+                        <span dir="ltr">+972 (0) 3-555-0123</span>
                      </div>
                      <div className="flex items-center gap-4 text-slate-600">
-                        <Mail className="w-6 h-6 text-lavi-dark" />
+                        <User className="w-6 h-6 text-lavi-dark" />
                         <span>info@lavisilver.com</span>
                      </div>
                      <div className="flex items-center gap-4 text-slate-600">
                         <Building className="w-6 h-6 text-lavi-dark" />
-                        <span>Rothschild Blvd 22, Tel Aviv, Israel</span>
+                        <span>{address}</span>
                      </div>
                   </div>
                </div>
                
                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-                   <h3 className="text-xl font-bold text-lavi-dark mb-4">Office Hours</h3>
+                   <h3 className="text-xl font-bold text-lavi-dark mb-4">{t.officeHours}</h3>
                    <div className="flex justify-between text-slate-600 border-b border-slate-100 py-2">
-                      <span>Sunday - Thursday</span>
+                      <span>{lang === 'en' ? 'Sunday - Thursday' : 'ראשון - חמישי'}</span>
                       <span>09:00 - 18:00</span>
                    </div>
                    <div className="flex justify-between text-slate-600 py-2">
-                      <span>Friday</span>
+                      <span>{lang === 'en' ? 'Friday' : 'שישי'}</span>
                       <span>09:00 - 13:00</span>
                    </div>
                </div>
@@ -1609,37 +1813,36 @@ const Contact = () => {
             <form className="bg-white p-8 md:p-10 rounded-2xl border border-slate-200 shadow-xl space-y-6" onSubmit={(e) => e.preventDefault()}>
                <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">First Name</label>
+                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t.form.firstName}</label>
                      <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:border-lavi-dark outline-none transition-colors" />
                   </div>
                   <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Last Name</label>
+                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t.form.lastName}</label>
                      <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:border-lavi-dark outline-none transition-colors" />
                   </div>
                </div>
                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                  <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t.form.email}</label>
                   <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:border-lavi-dark outline-none transition-colors" />
                </div>
                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Message</label>
+                  <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t.form.message}</label>
                   <textarea rows={4} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:border-lavi-dark outline-none transition-colors"></textarea>
                </div>
-               <Button className="w-full hover:bg-lavi-dark hover:text-white">Send Message</Button>
+               <Button className="w-full hover:bg-lavi-dark hover:text-white">{t.form.send}</Button>
             </form>
          </div>
       </div>
    );
 };
 
-const ChatWidget = () => {
+const ChatWidget = ({ lang }: { lang: Lang }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Ref to hold the chat session
-  const chatSessionRef = useRef<Chat | null>(null);
+  const t = CONTENT[lang].nav;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1649,29 +1852,6 @@ const ChatWidget = () => {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const initChat = async () => {
-     if (!chatSessionRef.current) {
-        try {
-           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-           chatSessionRef.current = ai.chats.create({
-             model: 'gemini-2.5-flash',
-             config: {
-               systemInstruction: "You are a helpful, professional AI assistant for Lavi Silver Group. Your goal is to assist users with questions about investing in silver, benefits for Olim (immigrants to Israel), and company services. Be concise, polite, and knowledgeable about precious metals.",
-             }
-           });
-        } catch (error) {
-           console.error("Failed to initialize chat", error);
-        }
-     }
-  };
-
-  // Initialize chat when opened
-  useEffect(() => {
-    if (isOpen) {
-        initChat();
-    }
-  }, [isOpen]);
-
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = input;
@@ -1679,42 +1859,33 @@ const ChatWidget = () => {
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsLoading(true);
 
-    try {
-      if (!chatSessionRef.current) {
-          await initChat();
-      }
-      
-      if (chatSessionRef.current) {
-          const result = await chatSessionRef.current.sendMessage({ message: userMsg });
-          setMessages(prev => [...prev, { role: 'model', text: result.text || "I didn't catch that." }]);
-      } else {
-          throw new Error("Chat session not initialized");
-      }
-    } catch (error) {
-      console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "I'm having trouble connecting to the server. Please try again later." }]);
-    } finally {
-      setIsLoading(false);
-    }
+    // Simulate connecting to a desk agent
+    setTimeout(() => {
+        const reply = lang === 'en' 
+          ? "Thank you for your message. An advisor from the Investor Desk will be with you shortly."
+          : "תודה על הודעתך. יועץ מדסק המשקיעים יהיה איתך בקרוב.";
+        setMessages(prev => [...prev, { role: 'model', text: reply }]);
+        setIsLoading(false);
+    }, 1500);
   };
 
   return (
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 p-4 bg-lavi-silver text-lavi-dark rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-110 transition-transform duration-300"
+        className="fixed bottom-6 right-6 rtl:right-auto rtl:left-6 z-50 p-4 bg-lavi-silver text-lavi-dark rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-110 transition-transform duration-300"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-40 w-[350px] md:w-[400px] h-[500px] bg-lavi-dark border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+        <div className="fixed bottom-24 right-6 rtl:right-auto rtl:left-6 z-40 w-[350px] md:w-[400px] h-[500px] bg-lavi-dark border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
            <div className="p-4 bg-lavi-primary/50 border-b border-white/10 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-lavi-silver flex items-center justify-center">
-                 <Bot className="w-5 h-5 text-lavi-dark" />
+                 <User className="w-5 h-5 text-lavi-dark" />
               </div>
               <div>
-                 <h4 className="text-white font-bold">Lavi Assistant</h4>
+                 <h4 className="text-white font-bold">{t.desk}</h4>
                  <p className="text-[10px] text-lavi-silver uppercase tracking-wider">Online</p>
               </div>
            </div>
@@ -1722,15 +1893,15 @@ const ChatWidget = () => {
            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 && (
                  <div className="text-center text-slate-500 text-sm mt-10">
-                    <p>Hello! How can I help you with silver investment today?</p>
+                    <p>{lang === 'en' ? 'Welcome to the Investor Desk. How can we help you today?' : 'ברוכים הבאים לדסק המשקיעים. איך נוכל לעזור היום?'}</p>
                  </div>
               )}
               {messages.map((msg, idx) => (
                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] p-3 rounded-xl text-sm leading-relaxed ${
                        msg.role === 'user' 
-                       ? 'bg-lavi-silver text-lavi-dark rounded-tr-none' 
-                       : 'bg-white/10 text-slate-200 rounded-tl-none'
+                       ? 'bg-lavi-silver text-lavi-dark rounded-tr-none rtl:rounded-tr-xl rtl:rounded-tl-none' 
+                       : 'bg-white/10 text-slate-200 rounded-tl-none rtl:rounded-tl-xl rtl:rounded-tr-none'
                     }`}>
                        {msg.text}
                     </div>
@@ -1738,7 +1909,7 @@ const ChatWidget = () => {
               ))}
               {isLoading && (
                  <div className="flex justify-start">
-                    <div className="bg-white/10 p-3 rounded-xl rounded-tl-none flex gap-1">
+                    <div className="bg-white/10 p-3 rounded-xl rounded-tl-none rtl:rounded-tr-none flex gap-1">
                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></span>
                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></span>
@@ -1755,11 +1926,11 @@ const ChatWidget = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Ask about silver..."
+                    placeholder="..."
                     className="flex-1 bg-lavi-dark border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:border-lavi-silver outline-none"
                  />
                  <button onClick={handleSend} disabled={isLoading} className="p-2 bg-lavi-silver rounded-lg text-lavi-dark hover:bg-white transition-colors disabled:opacity-50">
-                    <Send className="w-4 h-4" />
+                    <Send className="w-4 h-4 rtl:rotate-180" />
                  </button>
               </div>
            </div>
@@ -1769,8 +1940,50 @@ const ChatWidget = () => {
   );
 };
 
+const NewsletterSection = ({ lang }: { lang: Lang }) => {
+  const isEn = lang === 'en';
+  return (
+    <div className="bg-gradient-to-r from-lavi-primary/50 to-lavi-dark border-t border-white/10 py-16">
+        <div className="container mx-auto px-6">
+            <div className="bg-lavi-silver rounded-2xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+                 <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-12 -mt-12 rtl:-ml-12 pointer-events-none"></div>
+                 
+                 <div className="relative z-10 max-w-xl text-center md:text-start">
+                      <div className="flex items-center justify-center md:justify-start gap-2 mb-3 text-lavi-dark/70 font-bold uppercase tracking-widest text-xs">
+                          <Mail className="w-4 h-4" /> {isEn ? 'Silver Rising Newsletter' : 'ניוזלטר הכסף'}
+                      </div>
+                      <h3 className="text-3xl font-serif font-bold text-lavi-dark mb-4">{isEn ? 'Stay Ahead of the Market' : 'הישאר לפני השוק'}</h3>
+                      <p className="text-lavi-dark/80 font-medium leading-relaxed">
+                          {isEn 
+                            ? 'Join 5,000+ investors receiving our weekly analysis on precious metals, Israeli economic updates, and exclusive buy-back opportunities.' 
+                            : 'הצטרף ל-5,000+ משקיעים המקבלים את הניתוח השבועי שלנו על מתכות יקרות, עדכונים כלכליים בישראל והזדמנויות רכישה בלעדיות.'}
+                      </p>
+                 </div>
+
+                 <div className="relative z-10 w-full md:w-auto flex-shrink-0">
+                      <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
+                          <input 
+                              type="email" 
+                              placeholder={isEn ? "Enter your email" : "הכנס אימייל"} 
+                              className="px-6 py-3 rounded-lg bg-white/90 border-0 text-lavi-dark placeholder:text-slate-500 focus:ring-2 focus:ring-lavi-dark/20 outline-none min-w-[300px]"
+                          />
+                          <button className="px-8 py-3 bg-lavi-dark text-white rounded-lg font-bold hover:bg-lavi-primary transition-colors shadow-lg">
+                              {isEn ? 'Subscribe' : 'הירשם'}
+                          </button>
+                      </form>
+                      <p className="text-lavi-dark/60 text-xs mt-3 text-center sm:text-start">
+                          {isEn ? 'No spam. Unsubscribe at any time.' : 'ללא ספאם. הסר הרשמה בכל עת.'}
+                      </p>
+                 </div>
+            </div>
+        </div>
+    </div>
+  );
+};
+
 const App = () => {
   const [page, setPage] = useState<Page>(Page.HOME);
+  const [lang, setLang] = useState<Lang>('en');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -1780,25 +1993,36 @@ const App = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const navigate = (p: Page) => {
     setPage(p);
     setMobileMenuOpen(false);
     window.scrollTo(0, 0);
   };
 
+  const toggleLang = () => {
+    setLang(l => l === 'en' ? 'he' : 'en');
+  };
+
+  const t = CONTENT[lang];
   const navLinks = [
-    { id: Page.HOME, label: 'Home' },
-    { id: Page.PRODUCTS, label: 'Catalog' },
-    { id: Page.ABOUT, label: 'About' },
-    { id: Page.LEARN, label: 'Learn' },
+    { id: Page.HOME, label: t.nav.home },
+    { id: Page.WHO_WE_SERVE, label: t.nav.whoWeServe },
+    { id: Page.PRODUCTS, label: t.nav.products },
+    { id: Page.ABOUT, label: t.nav.about },
+    { id: Page.LEARN, label: t.nav.learn },
   ];
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-lavi-silver selection:text-lavi-dark ${page === Page.HOME ? 'bg-lavi-dark text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
+    <div className={`min-h-screen font-sans selection:bg-lavi-silver selection:text-lavi-dark ${page === Page.HOME || page === Page.WHO_WE_SERVE ? 'bg-lavi-dark text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex flex-col">
-        <Ticker />
-        <div className={`w-full transition-all duration-300 border-b ${scrolled || page !== Page.HOME ? 'bg-lavi-dark/95 backdrop-blur-md border-white/10 py-2 shadow-lg' : 'bg-transparent border-transparent py-4'}`}>
+        <Ticker lang={lang} />
+        <div className={`w-full transition-all duration-300 border-b ${scrolled || (page !== Page.HOME && page !== Page.WHO_WE_SERVE) ? 'bg-lavi-dark/95 backdrop-blur-md border-white/10 py-2 shadow-lg' : 'bg-transparent border-transparent py-4'}`}>
            <div className="container mx-auto px-6 flex justify-between items-center">
              <div className="cursor-pointer" onClick={() => navigate(Page.HOME)}>
                 <Logo />
@@ -1816,30 +2040,46 @@ const App = () => {
                  </button>
                ))}
                
+               {/* Language Toggle */}
+               <button 
+                  onClick={toggleLang}
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-2"
+                  title="Switch Language"
+               >
+                  <Globe className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase">{lang === 'en' ? 'HE' : 'EN'}</span>
+               </button>
+
                {/* Investor Desk Item */}
-               <div className="flex items-center gap-2 text-white border-l border-white/10 pl-6 ml-2">
+               <div className="flex items-center gap-2 text-white border-s border-white/10 ps-6 ms-2">
                    <Phone className="w-4 h-4 text-lavi-silver" />
-                   <div className="flex flex-col">
-                       <span className="text-[10px] text-slate-400 uppercase tracking-widest">Investor Desk</span>
-                       <span className="text-sm font-bold leading-none">+972 (0) 3-555-0123</span>
+                   <div className="flex flex-col text-start">
+                       <span className="text-[10px] text-slate-400 uppercase tracking-widest">{t.nav.desk}</span>
+                       <span className="text-sm font-bold leading-none" dir="ltr">+972 (0) 3-555-0123</span>
                    </div>
                </div>
 
                <Button variant="primary" className="px-6 py-2 text-sm" onClick={() => navigate(Page.CONTACT)}>
-                  Contact Us
+                  {t.nav.contact}
                </Button>
              </div>
 
              {/* Mobile Menu Button */}
-             <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(true)}>
-               <Menu className="w-8 h-8" />
-             </button>
+             <div className="flex items-center gap-4 md:hidden">
+               <button onClick={toggleLang} className="text-white flex items-center gap-1">
+                  <Globe className="w-5 h-5" />
+                  <span className="text-xs font-bold uppercase">{lang === 'en' ? 'HE' : 'EN'}</span>
+               </button>
+               <button className="text-white" onClick={() => setMobileMenuOpen(true)}>
+                 <Menu className="w-8 h-8" />
+               </button>
+             </div>
            </div>
         </div>
       </nav>
 
       {/* Mobile Menu Overlay */}
-      <div className={`fixed inset-0 z-[60] bg-lavi-dark transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-0 z-[60] bg-lavi-dark transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : (lang === 'he' ? '-translate-x-full' : 'translate-x-full')}`}>
          <div className="p-6 flex justify-between items-center border-b border-white/10">
             <Logo />
             <button onClick={() => setMobileMenuOpen(false)} className="text-white">
@@ -1851,7 +2091,7 @@ const App = () => {
                <button 
                   key={link.id}
                   onClick={() => navigate(link.id)}
-                  className={`text-2xl font-serif font-bold text-left ${page === link.id ? 'text-lavi-silver' : 'text-white'}`}
+                  className={`text-2xl font-serif font-bold text-start ${page === link.id ? 'text-lavi-silver' : 'text-white'}`}
                >
                   {link.label}
                </button>
@@ -1863,61 +2103,62 @@ const App = () => {
                        <Phone className="w-5 h-5 text-lavi-silver" />
                    </div>
                    <div>
-                       <p className="text-xs text-slate-400 uppercase tracking-widest">Investor Desk</p>
-                       <p className="text-lg font-bold text-white">+972 (0) 3-555-0123</p>
+                       <p className="text-xs text-slate-400 uppercase tracking-widest">{t.nav.desk}</p>
+                       <p className="text-lg font-bold text-white" dir="ltr">+972 (0) 3-555-0123</p>
                    </div>
                </div>
-               <Button className="w-full" onClick={() => navigate(Page.CONTACT)}>Contact Us</Button>
+               <Button className="w-full" onClick={() => navigate(Page.CONTACT)}>{t.nav.contact}</Button>
             </div>
          </div>
       </div>
 
       {/* Main Content */}
       <main className="pt-32 min-h-screen">
-        {page === Page.HOME && <Home navigate={navigate} />}
-        {page === Page.ABOUT && <About navigate={navigate} />}
-        {page === Page.PRODUCTS && <Products navigate={navigate} />}
-        {page === Page.LEARN && <Learn navigate={navigate} />}
-        {page === Page.CONTACT && <Contact />}
+        {page === Page.HOME && <Home navigate={navigate} lang={lang} />}
+        {page === Page.WHO_WE_SERVE && <WhoWeServe navigate={navigate} lang={lang} />}
+        {page === Page.ABOUT && <About navigate={navigate} lang={lang} />}
+        {page === Page.PRODUCTS && <Products navigate={navigate} lang={lang} />}
+        {page === Page.LEARN && <Learn navigate={navigate} lang={lang} />}
+        {page === Page.CONTACT && <Contact lang={lang} />}
       </main>
 
-      <NewsletterSection />
+      <NewsletterSection lang={lang} />
 
       {/* Footer */}
       <footer className="bg-black py-16 border-t border-white/10 text-slate-200">
         <div className="container mx-auto px-6">
-           <div className="grid md:grid-cols-4 gap-12 mb-12">
+           <div className="grid md:grid-cols-4 gap-12 mb-12 text-start">
               <div className="col-span-1 md:col-span-1">
                  <Logo />
                  <p className="mt-6 text-slate-500 text-sm leading-relaxed">
-                    Premium silver brokerage for the modern investor. Secure, liquid, and compliant wealth preservation solutions for Olim and Israeli residents.
+                    {t.footer.desc}
                  </p>
               </div>
               
               <div>
-                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Quick Links</h4>
+                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">{t.footer.quickLinks}</h4>
                  <ul className="space-y-3 text-slate-400 text-sm">
                     {navLinks.map(link => (
                        <li key={link.id}><button onClick={() => navigate(link.id)} className="hover:text-lavi-silver transition-colors">{link.label}</button></li>
                     ))}
-                    <li><button onClick={() => navigate(Page.CONTACT)} className="hover:text-lavi-silver transition-colors">Contact</button></li>
+                    <li><button onClick={() => navigate(Page.CONTACT)} className="hover:text-lavi-silver transition-colors">{t.footer.contact}</button></li>
                  </ul>
               </div>
 
               <div>
-                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Legal</h4>
+                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">{t.footer.legal}</h4>
                  <ul className="space-y-3 text-slate-400 text-sm">
-                    <li><a href="#" className="hover:text-lavi-silver transition-colors">Privacy Policy</a></li>
-                    <li><a href="#" className="hover:text-lavi-silver transition-colors">Terms of Service</a></li>
-                    <li><a href="#" className="hover:text-lavi-silver transition-colors">AML Compliance</a></li>
-                    <li><a href="#" className="hover:text-lavi-silver transition-colors">Shipping & Delivery</a></li>
+                    <li><a href="#" className="hover:text-lavi-silver transition-colors">{t.footer.privacy}</a></li>
+                    <li><a href="#" className="hover:text-lavi-silver transition-colors">{t.footer.terms}</a></li>
+                    <li><a href="#" className="hover:text-lavi-silver transition-colors">{t.footer.aml}</a></li>
+                    <li><a href="#" className="hover:text-lavi-silver transition-colors">{t.footer.shipping}</a></li>
                  </ul>
               </div>
 
               <div>
-                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Contact</h4>
-                 <p className="text-slate-400 text-sm mb-2">Rothschild Blvd 22, Tel Aviv</p>
-                 <p className="text-slate-400 text-sm mb-2">+972 (0) 3-555-0123</p>
+                 <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">{t.footer.contact}</h4>
+                 <p className="text-slate-400 text-sm mb-2">{t.address}</p>
+                 <p className="text-slate-400 text-sm mb-2" dir="ltr">+972 (0) 3-555-0123</p>
                  <p className="text-slate-400 text-sm">info@lavisilver.com</p>
                  <div className="flex gap-4 mt-6">
                     <Globe className="w-5 h-5 text-slate-600 hover:text-lavi-silver cursor-pointer transition-colors" />
@@ -1926,15 +2167,15 @@ const App = () => {
               </div>
            </div>
            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-slate-600 text-xs">© 2024 Lavi Silver Group. All rights reserved.</p>
+              <p className="text-slate-600 text-xs">{t.footer.rights}</p>
               <p className="text-slate-600 text-xs flex items-center gap-1">
-                 <Shield className="w-3 h-3" /> Secure SSL Encryption
+                 <Shield className="w-3 h-3" /> {t.footer.secure}
               </p>
            </div>
         </div>
       </footer>
 
-      <ChatWidget />
+      <ChatWidget lang={lang} />
     </div>
   );
 };
